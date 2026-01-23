@@ -5,21 +5,18 @@ import com.be_mxh.config.security.jwt.JWTAuthenticationFilter;
 import com.be_mxh.config.security.jwt.RestAuthenticationEntryPoint;
 import com.be_mxh.service.UserService;
 import com.be_mxh.service.impl.UserServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.BeanIds;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -73,21 +70,15 @@ public class SecurityConfig {
         return http.csrf(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                                .requestMatchers("/api/auth/login", "/api/auth/register", "/hello").permitAll()
-                                .requestMatchers("/users/**").hasAnyAuthority("ROLE_USER")
-                                .requestMatchers("/admin/**").hasAnyAuthority("ROLE_ADMIN")
-//                        .requestMatchers(HttpMethod.GET).hasAnyRole("hasRole('ROLE_USER') or hasRole('ROLE_ADMIN')")
-//                        .requestMatchers(HttpMethod.DELETE, "/categories",
-//                                "/typeOfQuestions",
-//                                "/questions",
-//                                "/answers",
-//                                "/quizzes",
-//                                "/hello").hasAnyAuthority("ROLE_ADMIN")
-//                        .requestMatchers(HttpMethod.PUT, "/users").hasAnyAuthority("ROLE_USER")
+                                .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                                .requestMatchers("/api/a/**").hasAnyAuthority("ROLE_ADMIN")
+                                .requestMatchers( "/api/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
                 )
-                .exceptionHandling(customizer -> customizer.accessDeniedHandler(customAccessDeniedHandler()))
+                .exceptionHandling(customizer -> customizer
+                        .accessDeniedHandler(customAccessDeniedHandler())
+                        .authenticationEntryPoint(restServicesEntryPoint())
+                )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .httpBasic(Customizer.withDefaults())
                 .build();
     }
 }

@@ -123,6 +123,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public boolean isDuplicateEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    @Override
     public boolean isCorrectConfirmPassword(RegisterRequest registerRequest, String confirmPassword) {
         return registerRequest.getPassword().equals(confirmPassword);
     }
@@ -141,8 +146,10 @@ public class UserServiceImpl implements UserService {
     private RegisterResponse mapToDto(User savedUser) {
         return RegisterResponse.builder()
                 .id(savedUser.getId())
-                .username(savedUser.getUsername())
+                .firstName(savedUser.getFirstName())
+                .lastName(savedUser.getLastName())
                 .email(savedUser.getEmail())
+                .username(savedUser.getUsername())
                 .roles(savedUser.getRoles().stream()
                         .map(Role::getName)
                         .collect(Collectors.toSet()))
