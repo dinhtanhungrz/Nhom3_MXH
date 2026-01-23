@@ -25,5 +25,7 @@ public interface UserService extends UserDetailsService {
 
     boolean isDuplicateUsername(String username);
 
+    boolean isDuplicateEmail(String email);
+
     boolean isCorrectConfirmPassword(RegisterRequest registerRequest, String confirmPassword);
 }
