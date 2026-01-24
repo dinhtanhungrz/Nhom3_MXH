@@ -1,56 +1,45 @@
 package com.be_mxh.controller.user;
 
-import com.be_mxh.entity.User;
-import com.be_mxh.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import com.be_mxh.dto.ApiResponse;
+import com.be_mxh.dto.user.UpdateProfileRequest;
+import com.be_mxh.dto.user.UserProfileResponse;
+import com.be_mxh.service.UserService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @CrossOrigin("*")
-@RequiredArgsConstructor
 @RequestMapping("/api/users")
 public class UserRestController {
-    private final UserRepository userRepository;
+    @Autowired
+    private UserService userService;
 
-    /**
-     * Lấy danh sách tất cả user (admin / test)
-     */
-    @GetMapping
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    @GetMapping("/profile")
+    public ResponseEntity<?> getUserInfo() {
+        UserProfileResponse user = userService.getCurrentUser();
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<UserProfileResponse>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Get current user successfully")
+                        .data(user)
+                        .build()
+        );
     }
 
-    /**
-     * Lấy thông tin user theo ID
-     */
-    @GetMapping("/{id}")
-    public User getUserById(@PathVariable Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("User not found with id = " + id));
+    @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateProfile(@Valid @ModelAttribute UpdateProfileRequest updateProfileRequest){
+        UserProfileResponse user = userService.updateProfile(updateProfileRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.<UserProfileResponse>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Update user successfully")
+                        .data(user)
+                        .build()
+        );
     }
 
-    /**
-     * Tìm user theo username hoặc email
-     * VD: /api/users/search?keyword=lam
-     */
-    @GetMapping("/search")
-    public User findByUsernameOrEmail(
-            @RequestParam String keyword) {
-
-        return userRepository
-                .findByUsernameOrEmail(keyword, keyword)
-                .orElseThrow(() ->
-                        new RuntimeException("User not found"));
-    }
-
-    /**
-     * Xoá user (demo)
-     */
-    @DeleteMapping("/{id}")
-    public void deleteUser(@PathVariable Long id) {
-        userRepository.deleteById(id);
-    }
 }

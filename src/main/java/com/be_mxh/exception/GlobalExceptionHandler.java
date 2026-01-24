@@ -6,11 +6,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,7 +20,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 1️⃣ Login sai / Authentication lỗi (401)
+    // Login sai / Authentication lỗi (401)
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<?> handleAuthenticationException(AuthenticationException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
@@ -30,7 +32,7 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 2️⃣ Validation lỗi (@Valid) (400)
+    // Validation lỗi (@Valid) (400) @NotNull @NotBlank @Past @Pattern
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -42,16 +44,44 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(
                 ApiResponse.<Map>builder()
-                        .code(401)
-                        .message("Invalid username or password")
+                        .code(400)
+                        .message("Invalid fields")
                         .data(errors)
                         .build());
     }
 
-    // 3️⃣ Runtime exception chung (500)
+    // Validation lỗi (@Valid) (400) @Other annotation binding
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<?> handleBindException(BindException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+
+            String field = error.getField();
+            String message = "Invalid value";
+
+            Throwable cause = error.unwrap(Throwable.class);
+
+            if (cause instanceof DateTimeParseException) {
+                message = "Invalid date format. Expected yyyy-MM-dd";
+            }
+            else if (cause instanceof IllegalArgumentException) {
+                message = "Invalid value";
+            }
+
+            errors.put(field, message);
+        });
+
+        return ResponseEntity.badRequest().body(
+                ApiResponse.<Map>builder()
+                        .code(400)
+                        .message("Invalid fields")
+                        .data(errors)
+                        .build());
+    }
+
+    // Runtime exception chung (500)
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {
-        log.error("Runtime exception: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 ApiResponse.<Object>builder()
                         .code(500)

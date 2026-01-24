@@ -28,8 +28,8 @@ public class AuthRestController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponse.<String>builder()
                             .code(HttpStatus.BAD_REQUEST.value())
-                            .message("Username already exists")
-                            .data("DUPLICATE")
+                            .message("DUPLICATE")
+                            .data("Username already exists")
                             .build());
         }
 
@@ -38,8 +38,8 @@ public class AuthRestController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponse.<String>builder()
                             .code(HttpStatus.BAD_REQUEST.value())
-                            .message("Email already exists")
-                            .data("DUPLICATE")
+                            .message("DUPLICATE")
+                            .data("Email already exists")
                             .build());
         }
 
@@ -48,8 +48,8 @@ public class AuthRestController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponse.<String>builder()
                             .code(HttpStatus.BAD_REQUEST.value())
-                            .message("Confirm password is not correct")
-                            .data("INVALID_CONFIRM_PASSWORD")
+                            .message("INVALID_CONFIRM_PASSWORD")
+                            .data("Confirm password is not correct")
                             .build());
         }
 
@@ -67,7 +67,6 @@ public class AuthRestController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         String accessToken = authService.login(loginRequest);
-        log.info("Login successfully: {}", accessToken);
         LoginResponse result = new LoginResponse("Bearer", accessToken);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ApiResponse.<LoginResponse>builder()
