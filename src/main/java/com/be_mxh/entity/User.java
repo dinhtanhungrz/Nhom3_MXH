@@ -2,10 +2,12 @@ package com.be_mxh.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+
 
 @Entity
 @Table(name = "users")
@@ -19,7 +21,12 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "username", unique = true, nullable = false, length = 50)
+    @Column(
+            name = "username"
+            , unique = true
+            , nullable = false
+            , length = 50
+            , updatable = false)
     private String username;
 
     @Column(name = "password", nullable = false, length = 255)
@@ -44,6 +51,10 @@ public class User {
     @Column(name = "email", unique = true, nullable = false, length = 100)
     private String email;
 
+    @Column(name = "address", columnDefinition = "TEXT")
+    @Size(max = 500, message = "Địa chỉ không quá 500 ký tự")
+    private String address;
+
     @Column(name = "phone", unique = true, length = 15)
     @Pattern(
             regexp = "^(\\+84|0)[0-9]{9,10}$",
@@ -61,6 +72,9 @@ public class User {
     @Column(name = "gender", length = 10)
     private Gender gender;
 
+    @Column(name = "hobby", length = 255)
+    private String hobby;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
@@ -72,7 +86,6 @@ public class User {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-//        updatedAt = LocalDateTime.now();
         if (status == null) {
             status = UserStatus.ACTIVE;
         }

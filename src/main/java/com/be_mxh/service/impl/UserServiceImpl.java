@@ -2,6 +2,9 @@ package com.be_mxh.service.impl;
 
 import com.be_mxh.dto.client.auth.RegisterRequest;
 import com.be_mxh.dto.client.auth.RegisterResponse;
+import com.be_mxh.dto.image.ImageUploadResult;
+import com.be_mxh.dto.user.UpdateProfileRequest;
+import com.be_mxh.dto.user.UserProfileResponse;
 import com.be_mxh.entity.Role;
 import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
@@ -10,6 +13,7 @@ import com.be_mxh.service.RoleService;
 import com.be_mxh.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -32,6 +36,10 @@ public class UserServiceImpl implements UserService {
     private RoleService roleService;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private ImageUploadServiceImpl imageUploadService;
+    @Value("${AVATAR_DEFAULT_URL}")
+    private String AVATAR_DEFAULT_URL;
 
     @Override
     @Transactional
@@ -77,7 +85,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getCurrentUser() {
+    public UserProfileResponse getCurrentUser() {
         User user;
         String userName;
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -87,7 +95,28 @@ public class UserServiceImpl implements UserService {
             userName = principal.toString();
         }
         user = this.findByUsername(userName);
-        return user;
+        return mapToUserInfoDto(user);
+    }
+
+    @Override
+    public UserProfileResponse updateProfile(UpdateProfileRequest req) {
+        User user = userRepository.findById(req.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!req.getAvatar().isEmpty()) {
+            if (user.getAvatarUrl() != null)
+                imageUploadService.delete(user.getAvatarUrl());
+            ImageUploadResult imageUploadResult = imageUploadService.upload(req.getAvatar(), "avatars");
+            user.setAvatarUrl(imageUploadResult.getUrl());
+        }
+        user.setFirstName(req.getFirstName());
+        user.setLastName(req.getLastName());
+        user.setAddress(req.getAddress());
+        user.setPhone(req.getPhone());
+        user.setDateOfBirth(req.getDateOfBirth().atStartOfDay());
+        user.setGender(User.Gender.valueOf(req.getGender()));
+        user.setHobby(req.getHobby());
+        userRepository.save(user);
+        return mapToUserInfoDto(user);
     }
 
     @Override
@@ -140,8 +169,10 @@ public class UserServiceImpl implements UserService {
                 .email(req.getEmail())
                 .firstName(req.getFirstName())
                 .lastName(req.getLastName())
+                .avatarUrl(AVATAR_DEFAULT_URL)
                 .build();
     }
+
 
     private RegisterResponse mapToDto(User savedUser) {
         return RegisterResponse.builder()
@@ -154,6 +185,22 @@ public class UserServiceImpl implements UserService {
                         .map(Role::getName)
                         .collect(Collectors.toSet()))
                 .createdAt(savedUser.getCreatedAt())
+                .build();
+    }
+
+    private UserProfileResponse mapToUserInfoDto(User user) {
+        return UserProfileResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .phone(user.getPhone())
+                .avatarUrl(user.getAvatarUrl())
+                .dateOfBirth(user.getDateOfBirth())
+                .address(user.getAddress())
+                .hobby(user.getHobby())
+                .gender(user.getGender() != null ? user.getGender().name() : null)
                 .build();
     }
 }
