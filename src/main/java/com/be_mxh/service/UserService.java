@@ -2,6 +2,7 @@ package com.be_mxh.service;
 
 import com.be_mxh.dto.client.auth.RegisterRequest;
 import com.be_mxh.dto.client.auth.RegisterResponse;
+import com.be_mxh.dto.user.UpdatePasswordRequest;
 import com.be_mxh.dto.user.UpdateProfileRequest;
 import com.be_mxh.dto.user.UserProfileResponse;
 import com.be_mxh.entity.User;
@@ -17,7 +18,7 @@ public interface UserService extends UserDetailsService {
 
     User findByUsername(String username);
 
-    UserProfileResponse getCurrentUser();
+    UserProfileResponse getProfile();
 
     UserProfileResponse updateProfile(UpdateProfileRequest updateProfileRequest);
 
@@ -31,5 +32,7 @@ public interface UserService extends UserDetailsService {
 
     boolean isDuplicateEmail(String email);
 
-    boolean isCorrectConfirmPassword(RegisterRequest registerRequest, String confirmPassword);
+    boolean isCorrectConfirmPassword(String password, String confirmPassword);
+
+    void updatePassword(UpdatePasswordRequest updatePasswordRequest);
 }

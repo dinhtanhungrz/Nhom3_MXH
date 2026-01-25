@@ -8,23 +8,25 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "post_likes",
+        name = "likes",
         uniqueConstraints = @UniqueConstraint(
-                columnNames = {"post_id", "user_id"}
+                columnNames = {"status_id", "user_id"}
         )
 )
 @Getter
 @Setter
-public class PostLike {
+public class Like {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private Post post;
+    @JoinColumn(name = "status_id", nullable = false)
+    private Status status;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     private LocalDateTime createdAt = LocalDateTime.now();

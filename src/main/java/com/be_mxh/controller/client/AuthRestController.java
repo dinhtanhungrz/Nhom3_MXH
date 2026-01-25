@@ -44,7 +44,7 @@ public class AuthRestController {
         }
 
         // Check confirm password
-        if (!userService.isCorrectConfirmPassword(registerRequest, registerRequest.getConfirmPassword())) {
+        if (!userService.isCorrectConfirmPassword(registerRequest.getPassword(), registerRequest.getConfirmPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponse.<String>builder()
                             .code(HttpStatus.BAD_REQUEST.value())
@@ -76,4 +76,6 @@ public class AuthRestController {
                         .build()
         );
     }
+
+
 }

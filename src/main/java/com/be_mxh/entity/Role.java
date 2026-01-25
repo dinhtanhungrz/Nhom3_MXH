@@ -15,10 +15,7 @@ import java.io.Serializable;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Role implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 1L;
-
+public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
