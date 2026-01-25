@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Table(
         name = "comments",
         indexes = {
-                @Index(columnList = "post_id"),
+                @Index(columnList = "status_id"),
                 @Index(columnList = "createdAt")
         }
 )
@@ -30,8 +30,8 @@ public class Comment {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
-    private Post post;
+    @JoinColumn(name = "status_id", nullable = false)
+    private Status status;
 
     // Chuẩn bị cho reply comment
     @ManyToOne(fetch = FetchType.LAZY)

@@ -79,6 +79,18 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<?> handleUnauthorized(UnauthorizedException ex) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                ApiResponse.builder()
+                        .code(401)
+                        .message(ex.getMessage())
+                        .data("UNAUTHORIZED")
+                        .build()
+        );
+    }
+
     // Runtime exception chung (500)
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {

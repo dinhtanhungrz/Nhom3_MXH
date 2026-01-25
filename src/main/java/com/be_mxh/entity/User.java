@@ -80,6 +80,11 @@ public class User {
     @Builder.Default
     private UserStatus status = UserStatus.ACTIVE;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "display_friends_status", nullable = false)
+    @Builder.Default
+    private DisplayFriendsStatus displayFriendsStatus = DisplayFriendsStatus.PUBlLIC;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -96,6 +101,11 @@ public class User {
         MALE,
         FEMALE,
         OTHER
+    }
+
+    public enum DisplayFriendsStatus {
+        PUBlLIC,
+        PRIVATE
     }
 
     public enum UserStatus {

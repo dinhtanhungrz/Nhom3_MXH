@@ -3,17 +3,21 @@ package com.be_mxh.service.impl;
 import com.be_mxh.dto.client.auth.RegisterRequest;
 import com.be_mxh.dto.client.auth.RegisterResponse;
 import com.be_mxh.dto.image.ImageUploadResult;
+import com.be_mxh.dto.user.UpdatePasswordRequest;
 import com.be_mxh.dto.user.UpdateProfileRequest;
 import com.be_mxh.dto.user.UserProfileResponse;
 import com.be_mxh.entity.Role;
 import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
+import com.be_mxh.exception.BadRequestException;
+import com.be_mxh.exception.UnauthorizedException;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.RoleService;
 import com.be_mxh.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -85,7 +89,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserProfileResponse getCurrentUser() {
+    public UserProfileResponse getProfile() {
         User user;
         String userName;
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -157,9 +161,34 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean isCorrectConfirmPassword(RegisterRequest registerRequest, String confirmPassword) {
-        return registerRequest.getPassword().equals(confirmPassword);
+    public boolean isCorrectConfirmPassword(String password, String confirmPassword) {
+        return password.equals(confirmPassword);
     }
+
+    @Override
+    @Transactional
+    public void updatePassword(UpdatePasswordRequest request) {
+        User user = getCurrentUser();
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BadRequestException("Password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        userRepository.save(user);
+
+    }
+
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !(auth.getPrincipal() instanceof UserDetails userDetails)) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        return findByUsername(userDetails.getUsername());
+    }
+
 
     // mapper
     public User mapToEntity(RegisterRequest req) {

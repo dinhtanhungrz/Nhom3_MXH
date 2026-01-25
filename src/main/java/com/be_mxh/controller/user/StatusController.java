@@ -1,9 +1,9 @@
 package com.be_mxh.controller.user;
 
-import com.be_mxh.entity.Post;
-import com.be_mxh.service.CommentService;
-import com.be_mxh.service.LikeService;
-import com.be_mxh.service.PostService;
+import com.be_mxh.entity.Status;
+import com.be_mxh.service.impl.CommentServiceImpl;
+import com.be_mxh.service.impl.LikeServiceImpl;
+import com.be_mxh.service.impl.StatusServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,14 +14,14 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
-public class PostController {
+public class StatusController {
 
-    private final PostService postService;
-    private final CommentService commentService;
-    private final LikeService likeService;
+    private final StatusServiceImpl postService;
+    private final CommentServiceImpl commentService;
+    private final LikeServiceImpl likeServiceImpl;
 
     @PostMapping
-    public Post create(@RequestBody Map<String,String> req,
+    public Status create(@RequestBody Map<String,String> req,
                        Principal p) {
         return postService.create(
                 req.get("content"),
@@ -31,7 +31,7 @@ public class PostController {
     }
 
     @GetMapping
-    public List<Post> feed() {
+    public List<Status> feed() {
         return postService.feed();
     }
 
@@ -44,6 +44,6 @@ public class PostController {
 
     @PostMapping("/{id}/like")
     public int like(@PathVariable Long id, Principal p) {
-        return likeService.toggle(id, p.getName());
+        return likeServiceImpl.toggle(id, p.getName());
     }
 }
