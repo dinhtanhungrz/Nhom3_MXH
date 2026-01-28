@@ -46,7 +46,7 @@ public class DataInitializer implements CommandLineRunner {
                     .password(passwordEncoder.encode("123456"))
                     .roles(Set.of(roleAdmin))
                     .enabled(true)
-                    .status(User.UserStatus.ACTIVE)
+                    .status(User.UserStatus.PUBLIC)
                     .firstName("System")
                     .lastName("Admin")
                     .build();

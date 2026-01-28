@@ -78,7 +78,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
-    private UserStatus status = UserStatus.ACTIVE;
+    private UserStatus status = UserStatus.PUBLIC;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "display_friends_status", nullable = false)
@@ -92,7 +92,7 @@ public class User {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         if (status == null) {
-            status = UserStatus.ACTIVE;
+            status = UserStatus.PUBLIC;
         }
     }
 
@@ -109,8 +109,8 @@ public class User {
     }
 
     public enum UserStatus {
-        ACTIVE,
-        INACTIVE,
+        PUBLIC,
+        PRIVATE,
         LOCKED,
         EXPIRED,
         DELETED

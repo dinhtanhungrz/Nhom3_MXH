@@ -2,13 +2,15 @@ package com.be_mxh.repository;
 
 import com.be_mxh.entity.Comment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public interface CommentRepository
         extends JpaRepository<Comment, Long> {
 
-    List<Comment> findByPostIdAndDeletedFalseOrderByCreatedAtAsc(Long postId);
-
-    long countByPostIdAndDeletedFalse(Long postId);
+//    List<Comment> findByPostIdAndDeletedFalseOrderByCreatedAtAsc(Long postId);
+//
+//    long countByPostIdAndDeletedFalse(Long postId);
 }
