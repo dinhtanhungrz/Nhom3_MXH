@@ -1,0 +1,235 @@
+package com.be_mxh.service.impl;
+
+import com.be_mxh.dto.client.auth.RegisterRequest;
+import com.be_mxh.dto.client.auth.RegisterResponse;
+import com.be_mxh.dto.image.ImageUploadResult;
+import com.be_mxh.dto.user.UpdatePasswordRequest;
+import com.be_mxh.dto.user.UpdateProfileRequest;
+import com.be_mxh.dto.user.UserProfileResponse;
+import com.be_mxh.entity.Role;
+import com.be_mxh.entity.User;
+import com.be_mxh.entity.UserPrincipal;
+import com.be_mxh.exception.BadRequestException;
+import com.be_mxh.exception.UnauthorizedException;
+import com.be_mxh.repository.UserRepository;
+import com.be_mxh.service.RoleService;
+import com.be_mxh.service.UserService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+
+@Slf4j
+@Service
+public class UserServiceImpl implements UserService {
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private RoleService roleService;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private ImageUploadServiceImpl imageUploadService;
+    @Value("${AVATAR_DEFAULT_URL}")
+    private String AVATAR_DEFAULT_URL;
+
+    @Override
+    @Transactional
+    public UserDetails loadUserByUsername(String username) {
+        User user = userRepository.findByUsername(username);
+        if (user == null) {
+            throw new UsernameNotFoundException(username);
+        }
+        if (this.checkLogin(user)) {
+            return UserPrincipal.build(user);
+        }
+        boolean enable = false;
+        boolean accountNonExpired = false;
+        boolean credentialsNonExpired = false;
+        boolean accountNonLocked = false;
+        return new org.springframework.security.core.userdetails.User(user.getUsername(),
+                user.getPassword(), enable, accountNonExpired, credentialsNonExpired,
+                accountNonLocked, null);
+    }
+
+
+    @Override
+    public RegisterResponse save(RegisterRequest registerRequest) {
+        User user = mapToEntity(registerRequest);
+        if (registerRequest.getRole() == null || registerRequest.getRole().isEmpty()) {
+            Role role = roleService.findByName("ROLE_USER");
+            Set<Role> roles = new HashSet<>();
+            roles.add(role);
+            user.setRoles(roles);
+        }
+        User savedUser = userRepository.save(user);
+        return mapToDto(savedUser);
+    }
+
+    @Override
+    public Iterable<User> findAll() {
+        return userRepository.findAll();
+    }
+
+    @Override
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
+    @Override
+    public UserProfileResponse getProfile() {
+        User user;
+        String userName;
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UserDetails) {
+            userName = ((UserDetails) principal).getUsername();
+        } else {
+            userName = principal.toString();
+        }
+        user = this.findByUsername(userName);
+        return mapToUserInfoDto(user);
+    }
+
+    @Override
+    public UserProfileResponse updateProfile(UpdateProfileRequest req) {
+        User user = userRepository.findById(req.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!req.getAvatar().isEmpty()) {
+            if (user.getAvatarUrl() != null)
+                imageUploadService.delete(user.getAvatarUrl());
+            ImageUploadResult imageUploadResult = imageUploadService.upload(req.getAvatar(), "avatars");
+            user.setAvatarUrl(imageUploadResult.getUrl());
+        }
+        user.setFirstName(req.getFirstName());
+        user.setLastName(req.getLastName());
+        user.setAddress(req.getAddress());
+        user.setPhone(req.getPhone());
+        user.setDateOfBirth(req.getDateOfBirth().atStartOfDay());
+        user.setGender(User.Gender.valueOf(req.getGender()));
+        user.setHobby(req.getHobby());
+        userRepository.save(user);
+        return mapToUserInfoDto(user);
+    }
+
+    @Override
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
+
+    @Override
+    public UserDetails loadUserById(Long id) {
+        Optional<User> user = userRepository.findById(id);
+        if (user.isEmpty()) {
+            throw new NullPointerException();
+        }
+        return UserPrincipal.build(user.get());
+    }
+
+    @Override
+    public boolean checkLogin(User user) {
+        Iterable<User> users = this.findAll();
+        boolean isCorrectUser = false;
+        for (User currentUser : users) {
+            if (currentUser.getUsername().equals(user.getUsername()) && user.getPassword().equals(currentUser.getPassword()) && currentUser.isEnabled()) {
+                isCorrectUser = true;
+                break;
+            }
+        }
+        return isCorrectUser;
+    }
+
+    @Override
+    public boolean isDuplicateUsername(String username) {
+        return userRepository.existsByUsername(username);
+    }
+
+    @Override
+    public boolean isDuplicateEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    @Override
+    public boolean isCorrectConfirmPassword(String password, String confirmPassword) {
+        return password.equals(confirmPassword);
+    }
+
+    @Override
+    @Transactional
+    public void updatePassword(UpdatePasswordRequest request) {
+        User user = getCurrentUser();
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BadRequestException("Password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        userRepository.save(user);
+
+    }
+
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !(auth.getPrincipal() instanceof UserDetails userDetails)) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        return findByUsername(userDetails.getUsername());
+    }
+
+
+    // mapper
+    public User mapToEntity(RegisterRequest req) {
+        return User.builder()
+                .username(req.getUsername())
+                .password(passwordEncoder.encode(req.getPassword()))
+                .email(req.getEmail())
+                .firstName(req.getFirstName())
+                .lastName(req.getLastName())
+                .avatarUrl(AVATAR_DEFAULT_URL)
+                .build();
+    }
+
+
+    private RegisterResponse mapToDto(User savedUser) {
+        return RegisterResponse.builder()
+                .id(savedUser.getId())
+                .firstName(savedUser.getFirstName())
+                .lastName(savedUser.getLastName())
+                .email(savedUser.getEmail())
+                .username(savedUser.getUsername())
+                .roles(savedUser.getRoles().stream()
+                        .map(Role::getName)
+                        .collect(Collectors.toSet()))
+                .createdAt(savedUser.getCreatedAt())
+                .build();
+    }
+
+    private UserProfileResponse mapToUserInfoDto(User user) {
+        return UserProfileResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .phone(user.getPhone())
+                .avatarUrl(user.getAvatarUrl())
+                .dateOfBirth(user.getDateOfBirth())
+                .address(user.getAddress())
+                .hobby(user.getHobby())
+                .gender(user.getGender() != null ? user.getGender().name() : null)
+                .build();
+    }
+}

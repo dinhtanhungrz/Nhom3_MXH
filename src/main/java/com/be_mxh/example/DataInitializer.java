@@ -1,23 +1,57 @@
 package com.be_mxh.example;
 
+import com.be_mxh.entity.Role;
+import com.be_mxh.entity.User;
+import com.be_mxh.repository.RoleRepository;
+import com.be_mxh.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+//import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
+import java.util.Set;
+
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 @Component
-@RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private RoleRepository roleRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
 
-        User user = new User();
-        user.setUsername("lam123");
-        user.setEmail("lam@gmail.com");
-        user.setPassword(passwordEncoder.encode("123456"));
-        user.setRole("USER");
+        // 1. Create roles if not exist
+        Role roleUser = roleRepository.findByName("ROLE_USER")
+                .orElseGet(() -> roleRepository.save(
+                        new Role(null, "ROLE_USER")
+                ));
 
-        userRepository.save(user);
+        Role roleAdmin = roleRepository.findByName("ROLE_ADMIN")
+                .orElseGet(() -> roleRepository.save(
+                        new Role(null, "ROLE_ADMIN")
+                ));
+
+        // 2. Create admin user if not exist
+        if (!userRepository.existsByUsername("admin")) {
+            User admin = User.builder()
+                    .username("admin")
+                    .email("admin@gmail.com")
+                    .password(passwordEncoder.encode("123456"))
+                    .roles(Set.of(roleAdmin))
+                    .enabled(true)
+                    .status(User.UserStatus.PUBLIC)
+                    .firstName("System")
+                    .lastName("Admin")
+                    .build();
+
+            userRepository.save(admin);
+        }
     }
 }
