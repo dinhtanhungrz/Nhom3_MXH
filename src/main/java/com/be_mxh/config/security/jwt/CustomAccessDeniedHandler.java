@@ -18,7 +18,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         ApiResponse<Object> body = ApiResponse.<Object>builder()
                 .code(403)
                 .message("FORBIDDEN")
-                .data(new Object())
+                .data("Access Denied. You don't have permission to access this resource.")
                 .build();
 
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);

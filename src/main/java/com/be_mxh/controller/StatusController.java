@@ -1,4 +1,4 @@
-package com.be_mxh.controller.user;
+package com.be_mxh.controller;
 
 import com.be_mxh.entity.Status;
 import com.be_mxh.service.impl.CommentServiceImpl;

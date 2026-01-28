@@ -39,4 +39,6 @@ public interface UserService extends UserDetailsService {
     void updatePassword(UpdatePasswordRequest updatePasswordRequest);
 
     List<UserResponse> getAllUsers();
+
+    UserResponse blockUser(Long id);
 }
