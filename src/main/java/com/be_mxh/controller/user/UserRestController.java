@@ -4,13 +4,17 @@ import com.be_mxh.dto.ApiResponse;
 import com.be_mxh.dto.user.UpdatePasswordRequest;
 import com.be_mxh.dto.user.UpdateProfileRequest;
 import com.be_mxh.dto.user.UserProfileResponse;
+import com.be_mxh.dto.user.UserResponse;
 import com.be_mxh.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @CrossOrigin("*")
@@ -19,6 +23,7 @@ public class UserRestController {
     @Autowired
     private UserService userService;
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/profile")
     public ResponseEntity<?> getUserInfo() {
         UserProfileResponse user = userService.getProfile();
@@ -31,6 +36,7 @@ public class UserRestController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateProfile(@Valid @ModelAttribute UpdateProfileRequest updateProfileRequest) {
         UserProfileResponse user = userService.updateProfile(updateProfileRequest);
@@ -43,6 +49,7 @@ public class UserRestController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping("/password")
     public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordRequest updatePasswordRequest) {
         // Check confirm password
@@ -61,6 +68,19 @@ public class UserRestController {
                         .code(HttpStatus.OK.value())
                         .message("Update password successfully")
                         .data(null)
+                        .build()
+        );
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
+        List<UserResponse> users = userService.getAllUsers();
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<List<UserResponse>>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Get all users successfully")
+                        .data(users)
                         .build()
         );
     }

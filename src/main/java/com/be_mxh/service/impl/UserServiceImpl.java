@@ -6,6 +6,7 @@ import com.be_mxh.dto.image.ImageUploadResult;
 import com.be_mxh.dto.user.UpdatePasswordRequest;
 import com.be_mxh.dto.user.UpdateProfileRequest;
 import com.be_mxh.dto.user.UserProfileResponse;
+import com.be_mxh.dto.user.UserResponse;
 import com.be_mxh.entity.Role;
 import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -179,6 +181,15 @@ public class UserServiceImpl implements UserService {
 
     }
 
+    @Override
+    public List<UserResponse> getAllUsers() {
+        List<User> users = userRepository.findAll();
+
+        return users.stream()
+                .map(this::mapToUserResponse)
+                .toList();
+    }
+
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
@@ -230,6 +241,32 @@ public class UserServiceImpl implements UserService {
                 .address(user.getAddress())
                 .hobby(user.getHobby())
                 .gender(user.getGender() != null ? user.getGender().name() : null)
+                .build();
+    }
+
+    public UserResponse mapToUserResponse(User user) {
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .address(user.getAddress())
+                .avatarUrl(user.getAvatarUrl())
+                .gender(user.getGender())
+                .dateOfBirth(user.getDateOfBirth())
+                .hobby(user.getHobby())
+                .status(user.getStatus())
+                .enabled(user.isEnabled())
+                .displayFriendsStatus(user.getDisplayFriendsStatus())
+                .roles(
+                        user.getRoles()
+                                .stream()
+                                .map(role -> role.getName())
+                                .collect(Collectors.toSet())
+                )
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 }
