@@ -24,7 +24,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Bean
@@ -71,8 +71,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                                 .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                                .requestMatchers("/api/a/**").hasAnyAuthority("ROLE_ADMIN")
-                                .requestMatchers( "/api/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
+                                .anyRequest().authenticated()
                 )
                 .exceptionHandling(customizer -> customizer
                         .accessDeniedHandler(customAccessDeniedHandler())

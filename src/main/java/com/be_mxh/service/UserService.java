@@ -5,10 +5,12 @@ import com.be_mxh.dto.client.auth.RegisterResponse;
 import com.be_mxh.dto.user.UpdatePasswordRequest;
 import com.be_mxh.dto.user.UpdateProfileRequest;
 import com.be_mxh.dto.user.UserProfileResponse;
+import com.be_mxh.dto.user.UserResponse;
 import com.be_mxh.entity.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserService extends UserDetailsService {
@@ -35,4 +37,6 @@ public interface UserService extends UserDetailsService {
     boolean isCorrectConfirmPassword(String password, String confirmPassword);
 
     void updatePassword(UpdatePasswordRequest updatePasswordRequest);
+
+    List<UserResponse> getAllUsers();
 }

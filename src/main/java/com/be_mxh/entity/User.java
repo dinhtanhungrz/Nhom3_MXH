@@ -83,7 +83,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(name = "display_friends_status", nullable = false)
     @Builder.Default
-    private DisplayFriendsStatus displayFriendsStatus = DisplayFriendsStatus.PUBlLIC;
+    private DisplayFriendsStatus displayFriendsStatus = DisplayFriendsStatus.PUBLIC;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -104,7 +104,7 @@ public class User {
     }
 
     public enum DisplayFriendsStatus {
-        PUBlLIC,
+        PUBLIC,
         PRIVATE
     }
 
