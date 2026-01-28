@@ -1,4 +1,4 @@
-package com.be_mxh.controller.user;
+package com.be_mxh.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

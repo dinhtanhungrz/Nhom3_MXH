@@ -1,4 +1,4 @@
-package com.be_mxh.controller.user;
+package com.be_mxh.controller;
 
 import com.be_mxh.dto.ApiResponse;
 import com.be_mxh.dto.user.UpdatePasswordRequest;
@@ -79,8 +79,21 @@ public class UserRestController {
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.<List<UserResponse>>builder()
                         .code(HttpStatus.OK.value())
-                        .message("Get all users successfully")
+                        .message("Get all users successfully!")
                         .data(users)
+                        .build()
+        );
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/block/{id}")
+    public ResponseEntity<?> blockUser(@PathVariable("id") Long id) {
+        UserResponse user = userService.blockUser(id);
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<UserResponse>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Lock user '" + user.getUsername() + "' successfully!")
+                        .data(user)
                         .build()
         );
     }

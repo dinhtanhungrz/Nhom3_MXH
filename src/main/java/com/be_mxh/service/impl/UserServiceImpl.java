@@ -190,6 +190,14 @@ public class UserServiceImpl implements UserService {
                 .toList();
     }
 
+    @Override
+    public UserResponse blockUser(Long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setStatus(User.UserStatus.LOCKED);
+        User result = userRepository.save(user);
+        return mapToUserResponse(result);
+    }
+
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
