@@ -6,6 +6,7 @@ import com.be_mxh.dto.user.UpdateProfileRequest;
 import com.be_mxh.dto.user.UserProfileResponse;
 import com.be_mxh.dto.user.UserResponse;
 import com.be_mxh.service.UserService;
+import com.be_mxh.validation.PasswordValidator;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -51,14 +52,14 @@ public class UserRestController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping("/password")
-    public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordRequest updatePasswordRequest) {
+    public ResponseEntity<?> updatePassword(@Valid @RequestBody UpdatePasswordRequest updatePasswordRequest) {
         // Check confirm password
-        if (!userService.isCorrectConfirmPassword(updatePasswordRequest.getPassword(), updatePasswordRequest.getConfirmPassword())) {
+        if (!PasswordValidator.isConfirmPasswordMatched(updatePasswordRequest.getPassword(), updatePasswordRequest.getConfirmPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponse.<String>builder()
                             .code(HttpStatus.BAD_REQUEST.value())
-                            .message("INVALID_CONFIRM_PASSWORD")
-                            .data("Confirm password is not correct")
+                            .message("Confirm password is not correct")
+                            .data("INVALID_CONFIRM_PASSWORD")
                             .build());
         }
 

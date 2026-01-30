@@ -1,4 +1,4 @@
-package com.be_mxh.dto.client.auth;
+package com.be_mxh.dto.auth;
 
 
 import lombok.Builder;
