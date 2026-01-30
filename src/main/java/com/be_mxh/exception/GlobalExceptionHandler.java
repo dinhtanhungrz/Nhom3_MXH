@@ -26,8 +26,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
                 ApiResponse.<String>builder()
                         .code(401)
-                        .message("UNAUTHORIZED")
-                        .data("Invalid username or password")
+                        .message("Invalid username or password")
+                        .data(null)
                         .build()
         );
     }
@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(
                 ApiResponse.<Map>builder()
                         .code(400)
-                        .message("INVALID_FIELDS")
+                        .message("Invalid fields")
                         .data(errors)
                         .build());
     }
@@ -63,8 +63,7 @@ public class GlobalExceptionHandler {
 
             if (cause instanceof DateTimeParseException) {
                 message = "Invalid date format. Expected yyyy-MM-dd";
-            }
-            else if (cause instanceof IllegalArgumentException) {
+            } else if (cause instanceof IllegalArgumentException) {
                 message = "Invalid value";
             }
 
@@ -74,7 +73,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(
                 ApiResponse.<Map>builder()
                         .code(400)
-                        .message("INVALID_FIELDS")
+                        .message("Invalid fields")
                         .data(errors)
                         .build());
     }
@@ -85,7 +84,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
                 ApiResponse.<String>builder()
                         .code(401)
-                        .message("UNAUTHORIZED")
+                        .message("Invalid username or password")
                         .data(ex.getMessage())
                         .build()
         );
@@ -98,7 +97,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.builder()
                         .code(403)
-                        .message("FORBIDDEN")
+                        .message("Forbidden")
                         .data("Access Denied. You don't have permission to access this resource.")
                         .build());
     }
@@ -106,10 +105,11 @@ public class GlobalExceptionHandler {
     // Runtime exception chung (500)
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {
+        ex.printStackTrace();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 ApiResponse.<String>builder()
                         .code(500)
-                        .message("INTERNAL_SERVER_ERROR")
+                        .message("Internal server errors")
                         .data(ex.getMessage())
                         .build()
         );

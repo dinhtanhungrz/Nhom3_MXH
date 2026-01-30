@@ -1,23 +1,18 @@
 package com.be_mxh.service.impl;
 
-import com.be_mxh.dto.client.auth.RegisterRequest;
-import com.be_mxh.dto.client.auth.RegisterResponse;
 import com.be_mxh.dto.image.ImageUploadResult;
 import com.be_mxh.dto.user.UpdatePasswordRequest;
 import com.be_mxh.dto.user.UpdateProfileRequest;
 import com.be_mxh.dto.user.UserProfileResponse;
 import com.be_mxh.dto.user.UserResponse;
-import com.be_mxh.entity.Role;
 import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.exception.BadRequestException;
 import com.be_mxh.exception.UnauthorizedException;
 import com.be_mxh.repository.UserRepository;
-import com.be_mxh.service.RoleService;
 import com.be_mxh.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,10 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -39,13 +32,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private RoleService roleService;
-    @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
     private ImageUploadServiceImpl imageUploadService;
-    @Value("${AVATAR_DEFAULT_URL}")
-    private String AVATAR_DEFAULT_URL;
 
     @Override
     @Transactional
@@ -66,19 +55,6 @@ public class UserServiceImpl implements UserService {
                 accountNonLocked, null);
     }
 
-
-    @Override
-    public RegisterResponse save(RegisterRequest registerRequest) {
-        User user = mapToEntity(registerRequest);
-        if (registerRequest.getRole() == null || registerRequest.getRole().isEmpty()) {
-            Role role = roleService.findByName("ROLE_USER");
-            Set<Role> roles = new HashSet<>();
-            roles.add(role);
-            user.setRoles(roles);
-        }
-        User savedUser = userRepository.save(user);
-        return mapToDto(savedUser);
-    }
 
     @Override
     public Iterable<User> findAll() {
@@ -140,34 +116,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean checkLogin(User user) {
-        Iterable<User> users = this.findAll();
-        boolean isCorrectUser = false;
-        for (User currentUser : users) {
-            if (currentUser.getUsername().equals(user.getUsername()) && user.getPassword().equals(currentUser.getPassword()) && currentUser.isEnabled()) {
-                isCorrectUser = true;
-                break;
-            }
-        }
-        return isCorrectUser;
-    }
-
-    @Override
-    public boolean isDuplicateUsername(String username) {
-        return userRepository.existsByUsername(username);
-    }
-
-    @Override
-    public boolean isDuplicateEmail(String email) {
-        return userRepository.existsByEmail(email);
-    }
-
-    @Override
-    public boolean isCorrectConfirmPassword(String password, String confirmPassword) {
-        return password.equals(confirmPassword);
-    }
-
-    @Override
     @Transactional
     public void updatePassword(UpdatePasswordRequest request) {
         User user = getCurrentUser();
@@ -209,32 +157,20 @@ public class UserServiceImpl implements UserService {
     }
 
 
+    public boolean checkLogin(User user) {
+        Iterable<User> users = this.findAll();
+        boolean isCorrectUser = false;
+        for (User currentUser : users) {
+            if (currentUser.getUsername().equals(user.getUsername()) && user.getPassword().equals(currentUser.getPassword()) && currentUser.isEnabled()) {
+                isCorrectUser = true;
+                break;
+            }
+        }
+        return isCorrectUser;
+    }
+
+
     // mapper
-    public User mapToEntity(RegisterRequest req) {
-        return User.builder()
-                .username(req.getUsername())
-                .password(passwordEncoder.encode(req.getPassword()))
-                .email(req.getEmail())
-                .firstName(req.getFirstName())
-                .lastName(req.getLastName())
-                .avatarUrl(AVATAR_DEFAULT_URL)
-                .build();
-    }
-
-
-    private RegisterResponse mapToDto(User savedUser) {
-        return RegisterResponse.builder()
-                .id(savedUser.getId())
-                .firstName(savedUser.getFirstName())
-                .lastName(savedUser.getLastName())
-                .email(savedUser.getEmail())
-                .username(savedUser.getUsername())
-                .roles(savedUser.getRoles().stream()
-                        .map(Role::getName)
-                        .collect(Collectors.toSet()))
-                .createdAt(savedUser.getCreatedAt())
-                .build();
-    }
 
     private UserProfileResponse mapToUserInfoDto(User user) {
         return UserProfileResponse.builder()

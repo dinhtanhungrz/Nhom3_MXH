@@ -1,9 +1,12 @@
 package com.be_mxh.controller;
 
 import com.be_mxh.dto.ApiResponse;
-import com.be_mxh.dto.client.auth.*;
+import com.be_mxh.dto.auth.LoginRequest;
+import com.be_mxh.dto.auth.LoginResponse;
+import com.be_mxh.dto.auth.RegisterRequest;
+import com.be_mxh.dto.auth.RegisterResponse;
 import com.be_mxh.service.AuthService;
-import com.be_mxh.service.UserService;
+import com.be_mxh.validation.PasswordValidator;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,44 +19,42 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 public class AuthRestController {
     @Autowired
-    private UserService userService;
-    @Autowired
     private AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         // Check username duplicate
-        if (userService.isDuplicateUsername(registerRequest.getUsername())) {
+        if (authService.isDuplicateUsername(registerRequest.getUsername())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponse.<String>builder()
                             .code(HttpStatus.BAD_REQUEST.value())
-                            .message("DUPLICATE")
-                            .data("Username already exists")
+                            .message("Username already exists")
+                            .data("DUPLICATE")
                             .build());
         }
 
         // Check email duplicate
-        if (userService.isDuplicateEmail(registerRequest.getEmail())) {
+        if (authService.isDuplicateEmail(registerRequest.getEmail())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponse.<String>builder()
                             .code(HttpStatus.BAD_REQUEST.value())
-                            .message("DUPLICATE")
-                            .data("Email already exists")
+                            .message("Email already exists")
+                            .data("DUPLICATE")
                             .build());
         }
 
         // Check confirm password
-        if (!userService.isCorrectConfirmPassword(registerRequest.getPassword(), registerRequest.getConfirmPassword())) {
+        if (!PasswordValidator.isConfirmPasswordMatched(registerRequest.getPassword(), registerRequest.getConfirmPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponse.<String>builder()
                             .code(HttpStatus.BAD_REQUEST.value())
-                            .message("INVALID_CONFIRM_PASSWORD")
-                            .data("Confirm password is not correct")
+                            .message("Confirm password is not correct")
+                            .data("INVALID_CONFIRM_PASSWORD")
                             .build());
         }
 
         // Success
-        RegisterResponse result = userService.save(registerRequest);
+        RegisterResponse result = authService.register(registerRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ApiResponse.<RegisterResponse>builder()
                         .code(HttpStatus.CREATED.value())
