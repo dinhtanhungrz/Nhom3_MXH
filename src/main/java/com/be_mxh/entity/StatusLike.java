@@ -8,14 +8,14 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "likes",
+        name = "StatusLike",
         uniqueConstraints = @UniqueConstraint(
                 columnNames = {"status_id", "user_id"}
         )
 )
 @Getter
 @Setter
-public class Like {
+public class StatusLike {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

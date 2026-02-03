@@ -2,27 +2,32 @@ package com.be_mxh.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.Date;
 
 @Entity
-@Table(name = "statuses", indexes = {
-        @Index(columnList = "createdAt"),
-        @Index(columnList = "user_id")
-})
+@Table(
+        name = "statuses",
+        indexes = {
+                @Index(columnList = "user_id"),
+                @Index(columnList = "active, createdAt")
+        }
+)
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Status {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 3000)
+    @Column(nullable = false, length = 3000)
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,30 +35,22 @@ public class Status {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(nullable = false, length = 20)
     @Builder.Default
-    private StatusOfStatus status = StatusOfStatus.PUBLIC;
+    private Visibility visibility = Visibility.PUBLIC;
 
-    @Column(name = "is_active")
-    private Boolean active = true;
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean active = true;
 
-    private Date createdAt;
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 
-    private Date updatedAt;
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = new Date();
-        updatedAt = new Date();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = new Date();
-    }
-
-    // enum
-    public enum StatusOfStatus {
+    public enum Visibility {
         PUBLIC,
         FRIENDS_ONLY,
         ONLY_ME
