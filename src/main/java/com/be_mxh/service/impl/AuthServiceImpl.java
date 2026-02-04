@@ -1,13 +1,17 @@
 package com.be_mxh.service.impl;
 
 import com.be_mxh.dto.auth.LoginRequest;
+import com.be_mxh.dto.auth.LoginResponse;
 import com.be_mxh.dto.auth.RegisterRequest;
 import com.be_mxh.dto.auth.RegisterResponse;
+import com.be_mxh.entity.RefreshToken;
 import com.be_mxh.entity.Role;
 import com.be_mxh.entity.User;
 import com.be_mxh.exception.BadRequestException;
+import com.be_mxh.repository.RefreshTokenRepository;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.AuthService;
+import com.be_mxh.service.RefreshTokenService;
 import com.be_mxh.service.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +40,8 @@ public class AuthServiceImpl implements AuthService {
     private RoleService roleService;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private RefreshTokenService refreshTokenService;
 
     @Override
     public boolean isDuplicateUsername(String username) {
@@ -69,12 +75,16 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String login(LoginRequest loginRequest) {
+    public LoginResponse login(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
         );
+
+        User user = userRepository.findByUsername(loginRequest.getUsername());
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        return jwtService.generateTokenLogin(authentication);
+        String accessToken = jwtService.generateTokenLogin(authentication);
+        RefreshToken refreshToken = refreshTokenService.create(user);
+        return new LoginResponse("bearer", accessToken, refreshToken.getToken());
     }
 
     // mapper

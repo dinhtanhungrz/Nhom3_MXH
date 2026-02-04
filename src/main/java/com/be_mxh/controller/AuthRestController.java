@@ -66,13 +66,12 @@ public class AuthRestController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
-        String accessToken = authService.login(loginRequest);
-        LoginResponse result = new LoginResponse("Bearer", accessToken);
-        return ResponseEntity.status(HttpStatus.CREATED).body(
+        LoginResponse response = authService.login(loginRequest);
+        return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.<LoginResponse>builder()
-                        .code(HttpStatus.CREATED.value())
+                        .code(HttpStatus.OK.value())
                         .message("Login successfully")
-                        .data(result)
+                        .data(response)
                         .build()
         );
     }
