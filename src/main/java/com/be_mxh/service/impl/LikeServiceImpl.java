@@ -1,8 +1,5 @@
 package com.be_mxh.service.impl;
 
-import com.be_mxh.entity.Like;
-import com.be_mxh.entity.Status;
-import com.be_mxh.entity.User;
 import com.be_mxh.repository.LikeRepository;
 import com.be_mxh.repository.StatusRepository;
 import com.be_mxh.repository.UserRepository;

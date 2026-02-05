@@ -1,49 +1,88 @@
 package com.be_mxh.controller;
 
 import com.be_mxh.entity.Status;
+import com.be_mxh.entity.UserPrincipal;
+import com.be_mxh.service.StatusService;
 import com.be_mxh.service.impl.CommentServiceImpl;
 import com.be_mxh.service.impl.LikeServiceImpl;
 import com.be_mxh.service.impl.StatusServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/posts")
+@RequestMapping("/api/statuses")
 @RequiredArgsConstructor
 public class StatusController {
 
-    private final StatusServiceImpl postService;
-    private final CommentServiceImpl commentService;
-    private final LikeServiceImpl likeServiceImpl;
+    private final StatusService statusService;
 
-    @PostMapping
-    public Status create(@RequestBody Map<String,String> req,
-                       Principal p) {
-        return postService.create(
-                req.get("content"),
-                req.get("imageUrl"),
-                p.getName()
+    /**
+     * Tạo status mới + upload nhiều ảnh
+     */
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createStatus(
+            @RequestParam(value = "content", required = false) String content,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+
+        if ((content == null || content.trim().isEmpty())
+                && (images == null || images.isEmpty())) {
+            return ResponseEntity.badRequest()
+                    .body("Status phải có nội dung hoặc ảnh");
+        }
+
+        Status status = statusService.createStatus(
+                content,
+                images,
+                userPrincipal.getId()
         );
+
+        return ResponseEntity.ok(status);
     }
 
+    /**
+     * Lấy danh sách status (news feed)
+     */
     @GetMapping
-    public List<Status> feed() {
-        return postService.feed();
+    public ResponseEntity<List<Status>> getStatuses(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        List<Status> statuses =
+                statusService.getFeedStatuses(userPrincipal.getId());
+
+        return ResponseEntity.ok(statuses);
     }
 
-    @PostMapping("/{id}/comments")
-    public void comment(@PathVariable Long id,
-                        @RequestBody Map<String,String> req,
-                        Principal p) {
-        commentService.comment(id, req.get("content"), p.getName());
+    /**
+     * Lấy chi tiết 1 status
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<Status> getStatusById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        Status status = statusService.getStatusById(id, userPrincipal.getId());
+        return ResponseEntity.ok(status);
     }
 
-    @PostMapping("/{id}/like")
-    public int like(@PathVariable Long id, Principal p) {
-        return likeServiceImpl.toggle(id, p.getName());
+    /**
+     * Xoá status
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteStatus(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        statusService.deleteStatus(id, userPrincipal.getId());
+        return ResponseEntity.ok("Xoá status thành công");
     }
 }

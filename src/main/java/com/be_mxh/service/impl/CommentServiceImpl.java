@@ -24,7 +24,7 @@ public class CommentServiceImpl implements CommentService {
     public void comment(Long postId, String content, String username) {
 
         Status post = statusRepository.findById(postId)
-                .filter(p -> p.getActive())
+                .filter(p -> p.isActive())
                 .orElseThrow();
 
         User user = userRepository

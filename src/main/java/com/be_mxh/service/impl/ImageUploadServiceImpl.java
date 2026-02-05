@@ -1,6 +1,8 @@
 package com.be_mxh.service.impl;
 
 import com.be_mxh.dto.image.ImageUploadResult;
+import com.be_mxh.entity.StatusImage;
+import com.be_mxh.repository.StatusImageRepository;
 import com.be_mxh.service.ImageUploadService;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
@@ -9,12 +11,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 @Service
 public class ImageUploadServiceImpl implements ImageUploadService {
     @Autowired
     private Cloudinary cloudinary;
+    private StatusImageRepository statusImageRepository;
+
+    public ImageUploadServiceImpl(StatusImageRepository statusImageRepository) {
+        this.statusImageRepository = statusImageRepository;
+    }
 
     @Override
     public ImageUploadResult upload(MultipartFile file, String folderFile) {
@@ -37,6 +45,11 @@ public class ImageUploadServiceImpl implements ImageUploadService {
         } catch (IOException e) {
             throw new RuntimeException("Upload to Cloudinary failed", e);
         }
+    }
+    @Override
+    public List<StatusImage> getImagesByStatusId(Long statusId) {
+        return statusImageRepository
+                .findByStatusIdOrderBySortOrderAsc(statusId);
     }
 
     @Override
@@ -81,4 +94,5 @@ public class ImageUploadServiceImpl implements ImageUploadService {
         // bỏ extension
         return publicPath.substring(0, publicPath.lastIndexOf("."));
     }
+
 }

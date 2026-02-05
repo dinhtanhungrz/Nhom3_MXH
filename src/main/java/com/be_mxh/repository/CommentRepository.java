@@ -10,7 +10,5 @@ import java.util.List;
 public interface CommentRepository
         extends JpaRepository<Comment, Long> {
 
-//    List<Comment> findByPostIdAndDeletedFalseOrderByCreatedAtAsc(Long postId);
-//
-//    long countByPostIdAndDeletedFalse(Long postId);
+    long countByStatusId(Long statusId);
 }
