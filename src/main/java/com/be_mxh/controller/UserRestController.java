@@ -24,6 +24,19 @@ public class UserRestController {
     private UserService userService;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @GetMapping("/me")
+    public ResponseEntity<?> getUserInfoTerm() {
+        UserProfileResponse user = userService.getProfile();
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<UserProfileResponse>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Get current user successfully")
+                        .data(user)
+                        .build()
+        );
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/profile")
     public ResponseEntity<?> getUserInfo() {
         UserProfileResponse user = userService.getProfile();

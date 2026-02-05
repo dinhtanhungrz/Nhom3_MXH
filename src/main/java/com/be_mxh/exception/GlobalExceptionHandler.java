@@ -11,6 +11,7 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
@@ -99,6 +100,17 @@ public class GlobalExceptionHandler {
                         .code(403)
                         .message("Forbidden")
                         .data("Access Denied. You don't have permission to access this resource.")
+                        .build());
+    }
+
+    // Response cho lỗi 404
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNotFound(NoHandlerFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.builder()
+                        .code(404)
+                        .message("Not Found")
+                        .data("API not found: " + ex.getRequestURL())
                         .build());
     }
 
