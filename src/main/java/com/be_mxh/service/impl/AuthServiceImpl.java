@@ -5,7 +5,6 @@ import com.be_mxh.entity.RefreshToken;
 import com.be_mxh.entity.Role;
 import com.be_mxh.entity.User;
 import com.be_mxh.exception.BadRequestException;
-import com.be_mxh.exception.UnauthorizedException;
 import com.be_mxh.repository.RefreshTokenRepository;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.AuthService;
@@ -97,6 +96,12 @@ public class AuthServiceImpl implements AuthService {
                 newAccessToken,
                 "Bearer"
         );
+    }
+
+    @Override
+    public void logout(String refreshToken) {
+        RefreshToken token = refreshTokenRepository.findByToken(refreshToken).orElseThrow(() ->  new BadRequestException("Invalid refresh token"));
+        refreshTokenRepository.delete(token);
     }
 
     @Override

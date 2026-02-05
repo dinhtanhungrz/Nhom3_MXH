@@ -85,5 +85,17 @@ public class AuthRestController {
         );
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody RefreshTokenRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Logout successfully!")
+                        .data(null)
+                        .build()
+        );
+    }
+
 
 }
