@@ -8,6 +8,7 @@ import com.be_mxh.dto.user.UserResponse;
 import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.exception.BadRequestException;
+import com.be_mxh.exception.ResourceNotFoundException;
 import com.be_mxh.exception.UnauthorizedException;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.UserService;
@@ -82,20 +83,29 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileResponse updateProfile(UpdateProfileRequest req) {
-        User user = userRepository.findById(req.getId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        if (!req.getAvatar().isEmpty()) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new UnauthorizedException("Unauthenticated");
+        }
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+        assert userDetails != null;
+        String username = userDetails.getUsername();
+
+        // 2️⃣ Load user từ DB
+        User user = userRepository.findByUsername(username);
+
+        if (req.getAvatar() != null && !req.getAvatar().isEmpty()) {
             if (user.getAvatarUrl() != null)
                 imageUploadService.delete(user.getAvatarUrl());
             ImageUploadResult imageUploadResult = imageUploadService.upload(req.getAvatar(), "avatars");
             user.setAvatarUrl(imageUploadResult.getUrl());
         }
-        user.setFirstName(req.getFirstName());
-        user.setLastName(req.getLastName());
+        user.setFullName(req.getFullName());
         user.setAddress(req.getAddress());
-        user.setPhone(req.getPhone());
-        user.setDateOfBirth(req.getDateOfBirth());
-        user.setGender(User.Gender.valueOf(req.getGender()));
+        user.setPhone(req.getPhone() != null && req.getPhone().isBlank() ? null : req.getPhone());
         user.setHobby(req.getHobby());
         userRepository.save(user);
         return mapToUserInfoDto(user);
@@ -178,8 +188,7 @@ public class UserServiceImpl implements UserService {
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
+                .fullName(user.getFullName())
                 .phone(user.getPhone())
                 .avatarUrl(user.getAvatarUrl())
                 .dateOfBirth(user.getDateOfBirth())
@@ -193,8 +202,7 @@ public class UserServiceImpl implements UserService {
         return UserResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
+                .fullName(user.getFullName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .address(user.getAddress())

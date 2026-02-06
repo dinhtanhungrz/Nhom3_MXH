@@ -2,6 +2,7 @@ package com.be_mxh.exception;
 
 
 import com.be_mxh.dto.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -150,6 +151,17 @@ public class GlobalExceptionHandler {
                         .code(404)
                         .message("Not Found")
                         .data("API not found: " + ex.getRequestURL())
+                        .build());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleResourceNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.builder()
+                        .code(404)
+                        .message(ex.getMessage())
+                        .data(null)
                         .build());
     }
 

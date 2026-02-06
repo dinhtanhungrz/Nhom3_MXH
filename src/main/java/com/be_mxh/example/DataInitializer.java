@@ -47,8 +47,7 @@ public class DataInitializer implements CommandLineRunner {
                     .roles(Set.of(roleAdmin))
                     .enabled(true)
                     .status(User.UserStatus.PUBLIC)
-                    .firstName("System")
-                    .lastName("Admin")
+                    .fullName("Admin")
                     .build();
 
             userRepository.save(admin);
@@ -63,8 +62,7 @@ public class DataInitializer implements CommandLineRunner {
                     .roles(Set.of(roleUser))
                     .enabled(true)
                     .status(User.UserStatus.PUBLIC)
-                    .firstName("Van A")
-                    .lastName("Nguyen")
+                    .fullName("Nguyen Van A")
                     .build();
 
             userRepository.save(user);

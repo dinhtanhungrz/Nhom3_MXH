@@ -13,23 +13,14 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class UpdateProfileRequest {
-    private Long id;
-
     private MultipartFile avatar;
 
-    @NotBlank(message = "Firstname is required")
+    @NotBlank(message = "Full name is required")
     @Pattern(
             regexp = "^[a-zA-ZÀ-ỹ\\s]+$",
             message = "Full name must not contain special characters"
     )
-    private String firstName;
-
-    @NotBlank(message = "Lastname is required")
-    @Pattern(
-            regexp = "^[a-zA-ZÀ-ỹ\\s]+$",
-            message = "Full name must not contain special characters"
-    )
-    private String lastName;
+    private String fullName;
 
     @Pattern(
             regexp = "^[a-zA-Z0-9À-ỹ\\s]*$",
@@ -38,20 +29,10 @@ public class UpdateProfileRequest {
     private String address;
 
     @Pattern(
-            regexp = "^[0-9]{9,11}$",
-            message = "Phone number is invalid"
+            regexp = "^$|^(0|\\+84)[0-9]{9}$",
+            message = "Invalid phone number"
     )
     private String phone;
-
-    @Past(message = "Date of birth must be in the past")
-    @DateTimeFormat(pattern = "dd-MM-yyyy")
-    private LocalDate dateOfBirth;
-
-    @Pattern(
-            regexp = "MALE|FEMALE|OTHER",
-            message = "Gender must be MALE, FEMALE, or OTHER"
-    )
-    private String gender;
 
     @Pattern(
             regexp = "^[a-zA-Z0-9À-ỹ\\s,]*$",
