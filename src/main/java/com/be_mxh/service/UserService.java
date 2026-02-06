@@ -9,7 +9,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface UserService extends UserDetailsService {
 
@@ -22,8 +21,6 @@ public interface UserService extends UserDetailsService {
     UserProfileResponse updateProfile(UpdateProfileRequest updateProfileRequest);
 
     UserProfileResponse findById(Long id);
-
-    UserDetails loadUserById(Long id);
 
     void updatePassword(UpdatePasswordRequest updatePasswordRequest);
 

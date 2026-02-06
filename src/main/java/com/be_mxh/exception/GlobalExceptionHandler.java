@@ -2,7 +2,6 @@ package com.be_mxh.exception;
 
 
 import com.be_mxh.dto.ApiResponse;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +25,7 @@ public class GlobalExceptionHandler {
 
     // Login sai / Authentication lỗi (401)
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<?> handleAuthenticationException(AuthenticationException ex) {
+    public ResponseEntity<?> handleAuthenticationException() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
                 ApiResponse.<String>builder()
                         .code(401)
@@ -47,7 +46,7 @@ public class GlobalExceptionHandler {
                 );
 
         return ResponseEntity.badRequest().body(
-                ApiResponse.<Map>builder()
+                ApiResponse.<Map<String, String>>builder()
                         .code(400)
                         .message("Invalid fields")
                         .data(errors)
@@ -75,7 +74,7 @@ public class GlobalExceptionHandler {
         });
 
         return ResponseEntity.badRequest().body(
-                ApiResponse.<Map>builder()
+                ApiResponse.<Map<String, String>>builder()
                         .code(400)
                         .message("Invalid fields")
                         .data(errors)
@@ -95,8 +94,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAccessDenied(
-            AccessDeniedException ex) {
+    public ResponseEntity<ApiResponse<Object>> handleAccessDenied() {
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.builder()

@@ -1,14 +1,10 @@
 package com.be_mxh.dto.user;
 
-import com.be_mxh.entity.User;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
 
 @Getter
 @Setter

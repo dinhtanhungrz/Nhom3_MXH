@@ -5,10 +5,10 @@ import com.be_mxh.dto.user.UpdatePasswordRequest;
 import com.be_mxh.dto.user.UpdateProfileRequest;
 import com.be_mxh.dto.user.UserProfileResponse;
 import com.be_mxh.dto.user.UserResponse;
+import com.be_mxh.entity.Role;
 import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.exception.BadRequestException;
-import com.be_mxh.exception.ResourceNotFoundException;
 import com.be_mxh.exception.UnauthorizedException;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.UserService;
@@ -118,15 +118,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDetails loadUserById(Long id) {
-        Optional<User> user = userRepository.findById(id);
-        if (user.isEmpty()) {
-            throw new NullPointerException();
-        }
-        return UserPrincipal.build(user.get());
-    }
-
-    @Override
     @Transactional
     public void updatePassword(UpdatePasswordRequest request) {
         User user = getCurrentUser();
@@ -216,7 +207,7 @@ public class UserServiceImpl implements UserService {
                 .roles(
                         user.getRoles()
                                 .stream()
-                                .map(role -> role.getName())
+                                .map(Role::getName)
                                 .collect(Collectors.toSet())
                 )
                 .createdAt(user.getCreatedAt())
