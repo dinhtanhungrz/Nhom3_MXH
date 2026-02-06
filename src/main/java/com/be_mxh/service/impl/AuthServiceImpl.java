@@ -19,6 +19,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@Transactional
 public class AuthServiceImpl implements AuthService {
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -78,7 +80,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public RefreshTokenResponse refreshToken(String refreshToken) {
-        log.info("RefreshToken: {}", refreshToken);
         RefreshToken token = refreshTokenRepository
                 .findByToken(refreshToken)
                 .orElseThrow(() -> new BadRequestException("Invalid refresh token"));
@@ -100,7 +101,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void logout(String refreshToken) {
-        RefreshToken token = refreshTokenRepository.findByToken(refreshToken).orElseThrow(() ->  new BadRequestException("Invalid refresh token"));
+        RefreshToken token = refreshTokenRepository.findByToken(refreshToken).orElseThrow(() -> new BadRequestException("Invalid refresh token"));
         refreshTokenRepository.delete(token);
     }
 
@@ -123,8 +124,8 @@ public class AuthServiceImpl implements AuthService {
                 .username(req.getUsername())
                 .password(passwordEncoder.encode(req.getPassword()))
                 .email(req.getEmail())
-                .firstName(req.getFirstName())
-                .lastName(req.getLastName())
+                .dateOfBirth(req.getDateOfBirth())
+                .phone(req.getPhone() != null && req.getPhone().isBlank() ? null : req.getPhone())
                 .avatarUrl(AVATAR_DEFAULT_URL)
                 .build();
     }
@@ -133,8 +134,8 @@ public class AuthServiceImpl implements AuthService {
     private RegisterResponse mapToDto(User savedUser) {
         return RegisterResponse.builder()
                 .id(savedUser.getId())
-                .firstName(savedUser.getFirstName())
-                .lastName(savedUser.getLastName())
+                .dateOfBirth(savedUser.getDateOfBirth())
+                .phone(savedUser.getPhone())
                 .email(savedUser.getEmail())
                 .username(savedUser.getUsername())
                 .roles(savedUser.getRoles().stream()

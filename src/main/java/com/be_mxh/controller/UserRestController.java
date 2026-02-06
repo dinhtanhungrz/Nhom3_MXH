@@ -37,13 +37,13 @@ public class UserRestController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @GetMapping("/profile")
-    public ResponseEntity<?> getUserInfo() {
-        UserProfileResponse user = userService.getProfile();
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUserInfo(@PathVariable Long id) {
+        UserProfileResponse user = userService.findById(id);
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.<UserProfileResponse>builder()
                         .code(HttpStatus.OK.value())
-                        .message("Get current user successfully")
+                        .message("Get user successfully")
                         .data(user)
                         .build()
         );

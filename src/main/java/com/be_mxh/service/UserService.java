@@ -21,7 +21,7 @@ public interface UserService extends UserDetailsService {
 
     UserProfileResponse updateProfile(UpdateProfileRequest updateProfileRequest);
 
-    Optional<User> findById(Long id);
+    UserProfileResponse findById(Long id);
 
     UserDetails loadUserById(Long id);
 

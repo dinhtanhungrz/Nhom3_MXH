@@ -3,6 +3,7 @@ package com.be_mxh.dto.user;
 import com.be_mxh.entity.User;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -24,7 +25,7 @@ public class UserResponse {
     private String avatarUrl;
 
     private User.Gender gender;
-    private LocalDateTime dateOfBirth;
+    private LocalDate dateOfBirth;
     private String hobby;
 
     private User.UserStatus status;
