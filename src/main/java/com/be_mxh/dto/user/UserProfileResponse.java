@@ -12,8 +12,7 @@ public class UserProfileResponse {
     private Long id;
     private String username;
     private String email;
-    private String firstName;
-    private String lastName;
+    private String fullName;
     private String address;
     private String phone;
     private String avatarUrl;

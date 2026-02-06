@@ -30,7 +30,7 @@ public class User {
             , updatable = false)
     private String username;
 
-    @Column(name = "password", nullable = false, length = 255)
+    @Column(name = "password", nullable = false)
     private String password;
 
     @ManyToMany(fetch = FetchType.EAGER)
@@ -43,11 +43,8 @@ public class User {
     @Column(name = "enabled", nullable = false)
     private boolean enabled = true;
 
-    @Column(name = "first_name", length = 100)
-    private String firstName;
-
-    @Column(name = "last_name", length = 100)
-    private String lastName;
+    @Column(name = "full_name", length = 100)
+    private String fullName;
 
     @Column(name = "email", unique = true, nullable = false, length = 100)
     private String email;
@@ -96,7 +93,6 @@ public class User {
             status = UserStatus.PUBLIC;
         }
     }
-
 
 
     // enum

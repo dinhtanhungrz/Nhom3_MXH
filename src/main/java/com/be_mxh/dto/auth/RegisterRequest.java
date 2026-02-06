@@ -1,8 +1,6 @@
 package com.be_mxh.dto.auth;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.annotation.Nulls;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
