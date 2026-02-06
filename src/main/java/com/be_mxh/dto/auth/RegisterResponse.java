@@ -2,6 +2,7 @@ package com.be_mxh.dto.auth;
 
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -13,8 +14,8 @@ public class RegisterResponse {
     private Long id;
     private String username;
     private String email;
-    private String firstName;
-    private String lastName;
+    private LocalDate dateOfBirth;
+    private String phone;
     private Set<String> roles;
     private LocalDateTime createdAt;
 }

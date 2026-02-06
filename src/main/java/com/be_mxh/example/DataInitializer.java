@@ -53,5 +53,21 @@ public class DataInitializer implements CommandLineRunner {
 
             userRepository.save(admin);
         }
+
+        // 2. Create user test if not exist
+        if (!userRepository.existsByUsername("nguyenvana")) {
+            User user = User.builder()
+                    .username("nguyenvana")
+                    .email("nguyenvana@gmail.com")
+                    .password(passwordEncoder.encode("123456"))
+                    .roles(Set.of(roleUser))
+                    .enabled(true)
+                    .status(User.UserStatus.PUBLIC)
+                    .firstName("Van A")
+                    .lastName("Nguyen")
+                    .build();
+
+            userRepository.save(user);
+        }
     }
 }

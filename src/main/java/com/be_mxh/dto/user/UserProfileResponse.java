@@ -1,7 +1,8 @@
 package com.be_mxh.dto.user;
 
 import lombok.*;
-import java.time.LocalDateTime;
+
+import java.time.LocalDate;
 
 @Data
 @Builder
@@ -16,7 +17,7 @@ public class UserProfileResponse {
     private String address;
     private String phone;
     private String avatarUrl;
-    private LocalDateTime dateOfBirth;
+    private LocalDate dateOfBirth;
     private String gender;
     private String hobby;
 }

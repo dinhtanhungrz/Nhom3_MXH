@@ -1,23 +1,18 @@
 package com.be_mxh.dto.auth;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
+import jakarta.validation.constraints.*;
 import lombok.*;
+
+import java.time.LocalDate;
 
 @Setter
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class RegisterRequest {
-    @NotBlank(message = "First Name is required")
-    @Size(max = 100)
-    private String firstName;
-
-    @NotBlank(message = "Last Name is required")
-    @Size(max = 100)
-    private String lastName;
-
     @NotBlank(message = "Email is required")
     @Email
     @Size(max = 100)
@@ -34,6 +29,16 @@ public class RegisterRequest {
     @NotBlank(message = "Confirm Password is required")
     @Size(min = 6, max = 100)
     private String confirmPassword;
+
+    @Past(message = "Date of birth must be in the past")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate dateOfBirth;
+
+    @Pattern(
+            regexp = "^$|^(0|\\+84)[0-9]{9}$",
+            message = "Invalid phone number"
+    )
+    private String phone;
 
     private String role;
 }

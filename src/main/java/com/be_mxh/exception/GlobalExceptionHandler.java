@@ -5,6 +5,7 @@ import com.be_mxh.dto.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import tools.jackson.databind.exc.InvalidFormatException;
 
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
@@ -103,6 +105,43 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<?> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+
+        Throwable cause = ex.getCause();
+
+        // Bắt lỗi sai format date / datetime
+        if (cause instanceof InvalidFormatException ife) {
+
+            String fieldName = "";
+            if (!ife.getPath().isEmpty()) {
+                fieldName = ife.getPath().get(0).getPropertyName();
+            }
+
+            String message = "Invalid format";
+            Map<String, String> errors = new HashMap<>();
+            if ("dateOfBirth".equals(fieldName)) {
+                errors.put("dateOfBirth", "dateOfBirth must be in format yyyy-MM-dd");
+            }
+
+            return ResponseEntity
+                    .badRequest()
+                    .body(ApiResponse.builder()
+                            .code(400)
+                            .message(message)
+                            .data(errors)
+                            .build());
+        }
+
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.builder()
+                        .code(400)
+                        .message("Malformed JSON request")
+                        .data(null)
+                        .build());
+    }
+
     // Response cho lỗi 404
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleNotFound(NoHandlerFoundException ex) {
@@ -115,15 +154,15 @@ public class GlobalExceptionHandler {
     }
 
     // Runtime exception chung (500)
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {
-        ex.printStackTrace();
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ApiResponse.<String>builder()
-                        .code(500)
-                        .message("Internal server errors")
-                        .data(ex.getMessage())
-                        .build()
-        );
-    }
+//    @ExceptionHandler(RuntimeException.class)
+//    public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {
+//        ex.printStackTrace();
+//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+//                ApiResponse.<String>builder()
+//                        .code(500)
+//                        .message("Internal server errors")
+//                        .data(ex.getMessage())
+//                        .build()
+//        );
+//    }
 }

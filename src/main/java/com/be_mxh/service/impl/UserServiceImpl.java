@@ -94,7 +94,7 @@ public class UserServiceImpl implements UserService {
         user.setLastName(req.getLastName());
         user.setAddress(req.getAddress());
         user.setPhone(req.getPhone());
-        user.setDateOfBirth(req.getDateOfBirth().atStartOfDay());
+        user.setDateOfBirth(req.getDateOfBirth());
         user.setGender(User.Gender.valueOf(req.getGender()));
         user.setHobby(req.getHobby());
         userRepository.save(user);
@@ -102,8 +102,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Optional<User> findById(Long id) {
-        return userRepository.findById(id);
+    public UserProfileResponse findById(Long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        return mapToUserInfoDto(user);
     }
 
     @Override
