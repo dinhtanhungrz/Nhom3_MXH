@@ -1,9 +1,6 @@
 package com.be_mxh.service;
 
-import com.be_mxh.dto.auth.LoginRequest;
-import com.be_mxh.dto.auth.LoginResponse;
-import com.be_mxh.dto.auth.RegisterRequest;
-import com.be_mxh.dto.auth.RegisterResponse;
+import com.be_mxh.dto.auth.*;
 
 public interface AuthService {
     LoginResponse login(LoginRequest loginRequest);
@@ -14,4 +11,7 @@ public interface AuthService {
 
     RegisterResponse register(RegisterRequest registerRequest);
 
+    RefreshTokenResponse refreshToken(String refreshToken);
+
+    void logout(String refreshToken);
 }

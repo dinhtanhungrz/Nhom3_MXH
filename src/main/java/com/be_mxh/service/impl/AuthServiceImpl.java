@@ -1,9 +1,6 @@
 package com.be_mxh.service.impl;
 
-import com.be_mxh.dto.auth.LoginRequest;
-import com.be_mxh.dto.auth.LoginResponse;
-import com.be_mxh.dto.auth.RegisterRequest;
-import com.be_mxh.dto.auth.RegisterResponse;
+import com.be_mxh.dto.auth.*;
 import com.be_mxh.entity.RefreshToken;
 import com.be_mxh.entity.Role;
 import com.be_mxh.entity.User;
@@ -13,6 +10,7 @@ import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.AuthService;
 import com.be_mxh.service.RefreshTokenService;
 import com.be_mxh.service.RoleService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,10 +20,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
     @Autowired
@@ -42,6 +42,8 @@ public class AuthServiceImpl implements AuthService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private RefreshTokenService refreshTokenService;
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Override
     public boolean isDuplicateUsername(String username) {
@@ -75,6 +77,34 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public RefreshTokenResponse refreshToken(String refreshToken) {
+        log.info("RefreshToken: {}", refreshToken);
+        RefreshToken token = refreshTokenRepository
+                .findByToken(refreshToken)
+                .orElseThrow(() -> new BadRequestException("Invalid refresh token"));
+
+        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            refreshTokenRepository.delete(token);
+            throw new BadRequestException("Refresh token expired");
+        }
+
+        User user = token.getUser();
+
+        String newAccessToken = jwtService.generateToken(user);
+
+        return new RefreshTokenResponse(
+                newAccessToken,
+                "Bearer"
+        );
+    }
+
+    @Override
+    public void logout(String refreshToken) {
+        RefreshToken token = refreshTokenRepository.findByToken(refreshToken).orElseThrow(() ->  new BadRequestException("Invalid refresh token"));
+        refreshTokenRepository.delete(token);
+    }
+
+    @Override
     public LoginResponse login(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword())
@@ -84,7 +114,7 @@ public class AuthServiceImpl implements AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String accessToken = jwtService.generateTokenLogin(authentication);
         RefreshToken refreshToken = refreshTokenService.create(user);
-        return new LoginResponse("bearer", accessToken, refreshToken.getToken());
+        return new LoginResponse("bearer", user.getRoles().stream().map(Role::getName).toList(), accessToken, refreshToken.getToken());
     }
 
     // mapper

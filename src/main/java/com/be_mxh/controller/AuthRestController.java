@@ -1,10 +1,7 @@
 package com.be_mxh.controller;
 
 import com.be_mxh.dto.ApiResponse;
-import com.be_mxh.dto.auth.LoginRequest;
-import com.be_mxh.dto.auth.LoginResponse;
-import com.be_mxh.dto.auth.RegisterRequest;
-import com.be_mxh.dto.auth.RegisterResponse;
+import com.be_mxh.dto.auth.*;
 import com.be_mxh.service.AuthService;
 import com.be_mxh.validation.PasswordValidator;
 import jakarta.validation.Valid;
@@ -72,6 +69,30 @@ public class AuthRestController {
                         .code(HttpStatus.OK.value())
                         .message("Login successfully")
                         .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
+        RefreshTokenResponse response = authService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<RefreshTokenResponse>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Refresh token successfully!")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody RefreshTokenRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Logout successfully!")
+                        .data(null)
                         .build()
         );
     }

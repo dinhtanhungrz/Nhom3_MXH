@@ -1,5 +1,6 @@
 package com.be_mxh.service.impl;
 
+import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -32,6 +33,15 @@ public class JWTService {
 
     public String generateTokenLogin(Authentication auth) {
         UserPrincipal user = (UserPrincipal) auth.getPrincipal();
+        return Jwts.builder()
+                .setSubject(user.getUsername())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(secretKey, SignatureAlgorithm.HS512)
+                .compact();
+    }
+
+    public String generateToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getUsername())
                 .setIssuedAt(new Date())
