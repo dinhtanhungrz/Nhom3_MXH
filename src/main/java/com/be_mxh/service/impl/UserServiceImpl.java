@@ -143,7 +143,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse blockUser(Long id) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
-        user.setStatus(User.UserStatus.LOCKED);
+        user.setEnabled(Boolean.FALSE);
         User result = userRepository.save(user);
         return mapToUserResponse(result);
     }
