@@ -6,36 +6,45 @@ import lombok.*;
 @Entity
 @Table(
         name = "friendships",
+        indexes = {
+                @Index(name = "idx_friendships_requester", columnList = "requester_id"),
+                @Index(name = "idx_friendships_addressee", columnList = "addressee_id"),
+                @Index(name = "idx_friendships_status", columnList = "status")
+        },
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"requester_id", "addressee_id"})
-        })
+                @UniqueConstraint(
+                        name = "uk_friend_pair",
+                        columnNames = {"requester_id", "addressee_id"}
+                )
+        }
+)
 @Getter
 @Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class Friendship {
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-        @ManyToOne
-        @JoinColumn(name = "requester_id", nullable = false)
-        private User requester;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "requester_id", nullable = false)
+    private User requester;
 
-        @ManyToOne
-        @JoinColumn(name = "addressee_id", nullable = false)
-        private User addressee;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "addressee_id", nullable = false)
+    private User addressee;
 
-        @Enumerated(EnumType.STRING)
-        @Column(name = "status", nullable = false, length = 20)
-        @Builder.Default
-        private Status status = Status.PENDING;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private Status status = Status.PENDING;
 
-        public enum Status {
-                PENDING,
-                ACCEPTED,
-                REJECTED,
-                BLOCKED
-        }
+    public enum Status {
+        PENDING,
+        ACCEPTED,
+        REJECTED,
+        BLOCKED
+    }
 }

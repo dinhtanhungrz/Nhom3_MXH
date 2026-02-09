@@ -163,6 +163,19 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    //  BadRequest Exception
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<?> handleBadRequestException(BadRequestException be) {
+        be.printStackTrace();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponse.<Void>builder()
+                        .code(400)
+                        .message(be.getMessage())
+                        .data(null)
+                        .build()
+        );
+    }
+
     // Runtime exception chung (500)
 //    @ExceptionHandler(RuntimeException.class)
 //    public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {

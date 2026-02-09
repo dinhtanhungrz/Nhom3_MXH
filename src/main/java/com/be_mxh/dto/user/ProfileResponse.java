@@ -3,24 +3,20 @@ package com.be_mxh.dto.user;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
-@Setter
-@Getter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserProfileResponse {
+public class ProfileResponse {
     private Long id;
     private String username;
-    private String fullName;
     private String email;
+    private String fullName;
+    private String address;
     private String phone;
     private String avatarUrl;
-    private String address;
     private LocalDate dateOfBirth;
-    private LocalDateTime createdAt;
-    private String relationshipStatus;
-
-    private int postsCount;
-    private int friendsCount;
+    private String gender;
+    private String hobby;
 }

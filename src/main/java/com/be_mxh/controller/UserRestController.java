@@ -1,10 +1,8 @@
 package com.be_mxh.controller;
 
 import com.be_mxh.dto.ApiResponse;
-import com.be_mxh.dto.user.UpdatePasswordRequest;
-import com.be_mxh.dto.user.UpdateProfileRequest;
-import com.be_mxh.dto.user.UserProfileResponse;
-import com.be_mxh.dto.user.UserResponse;
+import com.be_mxh.dto.user.*;
+import com.be_mxh.service.FriendshipService;
 import com.be_mxh.service.UserService;
 import com.be_mxh.validation.PasswordValidator;
 import jakarta.validation.Valid;
@@ -22,13 +20,15 @@ import java.util.List;
 public class UserRestController {
     @Autowired
     private UserService userService;
+    @Autowired
+    private FriendshipService friendshipService;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/me")
     public ResponseEntity<?> getUserInfoTerm() {
-        UserProfileResponse user = userService.getProfile();
+        ProfileResponse user = userService.getProfile();
         return ResponseEntity.status(HttpStatus.OK).body(
-                ApiResponse.<UserProfileResponse>builder()
+                ApiResponse.<ProfileResponse>builder()
                         .code(HttpStatus.OK.value())
                         .message("Get current user successfully")
                         .data(user)
@@ -37,24 +37,24 @@ public class UserRestController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getUserInfo(@PathVariable Long id) {
-        UserProfileResponse user = userService.findById(id);
+    @GetMapping("/profile/{id}")
+    public ResponseEntity<?> getUserProfile(@PathVariable Long id) {
+        UserProfileResponse response = userService.getUserProfile(id);
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.<UserProfileResponse>builder()
                         .code(HttpStatus.OK.value())
-                        .message("Get user successfully")
-                        .data(user)
+                        .message("Get user profile successfully")
+                        .data(response)
                         .build()
         );
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> updateProfile(@Valid @ModelAttribute UpdateProfileRequest updateProfileRequest) {
-        UserProfileResponse user = userService.updateProfile(updateProfileRequest);
+    public ResponseEntity<?> updateProfile(@Valid @ModelAttribute ProfileRequest profileRequest) {
+        ProfileResponse user = userService.updateProfile(profileRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResponse.<UserProfileResponse>builder()
+                ApiResponse.<ProfileResponse>builder()
                         .code(HttpStatus.OK.value())
                         .message("Update user successfully")
                         .data(user)
@@ -107,6 +107,19 @@ public class UserRestController {
                         .code(HttpStatus.OK.value())
                         .message("Lock user '" + user.getUsername() + "' successfully!")
                         .data(user)
+                        .build()
+        );
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PostMapping("/{id}/friend-request")
+    public ResponseEntity<?> addFriendRequest(@PathVariable("id") Long id) {
+        friendshipService.friendRequest(id);
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Already send request add friends")
+                        .data(null)
                         .build()
         );
     }
