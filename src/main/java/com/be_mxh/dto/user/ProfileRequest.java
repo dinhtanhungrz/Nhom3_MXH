@@ -8,7 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Getter
 @Setter
-public class UpdateProfileRequest {
+public class ProfileRequest {
     private MultipartFile avatar;
 
     @NotBlank(message = "Full name is required")

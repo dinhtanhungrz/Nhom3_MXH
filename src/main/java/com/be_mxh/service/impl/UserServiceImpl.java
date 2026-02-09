@@ -1,19 +1,21 @@
 package com.be_mxh.service.impl;
 
 import com.be_mxh.dto.image.ImageUploadResult;
-import com.be_mxh.dto.user.UpdatePasswordRequest;
-import com.be_mxh.dto.user.UpdateProfileRequest;
-import com.be_mxh.dto.user.UserProfileResponse;
-import com.be_mxh.dto.user.UserResponse;
+import com.be_mxh.dto.user.*;
 import com.be_mxh.entity.Role;
 import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.exception.BadRequestException;
+import com.be_mxh.exception.ResourceNotFoundException;
 import com.be_mxh.exception.UnauthorizedException;
+import com.be_mxh.repository.FriendshipRepository;
+import com.be_mxh.repository.StatusRepository;
 import com.be_mxh.repository.UserRepository;
+import com.be_mxh.service.FriendshipService;
 import com.be_mxh.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,7 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 
@@ -33,9 +34,17 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
+    private FriendshipRepository friendshipRepository;
+    @Autowired
+    private StatusRepository statusRepository;
+    @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
     private ImageUploadServiceImpl imageUploadService;
+    @Autowired
+    private FriendshipService friendshipService;
+    @Value("${AVATAR_DEFAULT_URL}")
+    private String AVATAR_DEFAULT_URL;
 
     @Override
     @Transactional
@@ -68,7 +77,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserProfileResponse getProfile() {
+    public ProfileResponse getProfile() {
         User user;
         String userName;
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -82,7 +91,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserProfileResponse updateProfile(UpdateProfileRequest req) {
+    public ProfileResponse updateProfile(ProfileRequest req) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -98,8 +107,9 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(username);
 
         if (req.getAvatar() != null && !req.getAvatar().isEmpty()) {
-            if (user.getAvatarUrl() != null)
-                imageUploadService.delete(user.getAvatarUrl());
+            if (!user.getAvatarUrl().equals(AVATAR_DEFAULT_URL)) {
+            }
+            imageUploadService.delete(user.getAvatarUrl());
             ImageUploadResult imageUploadResult = imageUploadService.upload(req.getAvatar(), "avatars");
             user.setAvatarUrl(imageUploadResult.getUrl());
         }
@@ -112,7 +122,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserProfileResponse findById(Long id) {
+    public ProfileResponse findById(Long id) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         return mapToUserInfoDto(user);
     }
@@ -148,7 +158,33 @@ public class UserServiceImpl implements UserService {
         return mapToUserResponse(result);
     }
 
-    private User getCurrentUser() {
+    @Override
+    @Transactional(readOnly = true)
+    public UserProfileResponse getUserProfile(Long profileUserId) {
+        User currentUser = getCurrentUser();
+        User user = userRepository.findById(profileUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        UserProfileResponse dto = new UserProfileResponse();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setFullName(user.getFullName());
+        dto.setAvatarUrl(user.getAvatarUrl());
+        dto.setAddress(user.getAddress());
+        dto.setPhone(user.getPhone());
+        dto.setEmail(user.getEmail());
+        dto.setDateOfBirth(user.getDateOfBirth());
+        dto.setCreatedAt(user.getCreatedAt());
+
+        // Counts
+        dto.setRelationshipStatus(friendshipService.getRelationship(currentUser.getId(), user.getId()));
+        dto.setFriendsCount(friendshipRepository.countFriendshipsByUserId(user.getId()));
+        dto.setPostsCount(statusRepository.countByUserId(user.getId()));
+        return dto;
+    }
+
+    @Override
+    public User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         if (auth == null || !(auth.getPrincipal() instanceof UserDetails userDetails)) {
@@ -174,8 +210,8 @@ public class UserServiceImpl implements UserService {
 
     // mapper
 
-    private UserProfileResponse mapToUserInfoDto(User user) {
-        return UserProfileResponse.builder()
+    private ProfileResponse mapToUserInfoDto(User user) {
+        return ProfileResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())

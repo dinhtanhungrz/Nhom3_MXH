@@ -13,13 +13,16 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
     List<Status> findByActiveTrueOrderByCreatedAtDesc();
 
     @Query("""
-      SELECT p FROM Status p
-      WHERE p.active = false
-      AND p.user.id IN (
-        SELECT f.requester.id FROM Friendship f
-        WHERE f.requester= :userId
-      )
-      ORDER BY p.createdAt DESC
-    """)
+              SELECT p FROM Status p
+              WHERE p.active = false
+              AND p.user.id IN (
+                SELECT f.requester.id FROM Friendship f
+                WHERE f.requester= :userId
+              )
+              ORDER BY p.createdAt DESC
+            """)
     List<Status> feedByFollow(Long userId);
+
+
+    int countByUserId(Long userId);
 }
