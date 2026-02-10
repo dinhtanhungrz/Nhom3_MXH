@@ -1,5 +1,6 @@
 package com.be_mxh.service.impl;
 
+import com.be_mxh.config.security.SecurityUtils;
 import com.be_mxh.dto.image.ImageUploadResult;
 import com.be_mxh.dto.user.*;
 import com.be_mxh.entity.Role;
@@ -27,8 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
-@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
     @Autowired
@@ -45,48 +44,23 @@ public class UserServiceImpl implements UserService {
     private FriendshipService friendshipService;
     @Value("${AVATAR_DEFAULT_URL}")
     private String AVATAR_DEFAULT_URL;
+    @Autowired
+    private SecurityUtils securityUtils;
 
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) {
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
-            throw new UsernameNotFoundException(username);
-        }
-        if (this.checkLogin(user)) {
-            return UserPrincipal.build(user);
-        }
-        boolean enable = false;
-        boolean accountNonExpired = false;
-        boolean credentialsNonExpired = false;
-        boolean accountNonLocked = false;
-        return new org.springframework.security.core.userdetails.User(user.getUsername(),
-                user.getPassword(), enable, accountNonExpired, credentialsNonExpired,
-                accountNonLocked, null);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("User not found: " + username));
+
+        return UserPrincipal.build(user);
     }
 
-
-    @Override
-    public Iterable<User> findAll() {
-        return userRepository.findAll();
-    }
-
-    @Override
-    public User findByUsername(String username) {
-        return userRepository.findByUsername(username);
-    }
 
     @Override
     public ProfileResponse getProfile() {
-        User user;
-        String userName;
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof UserDetails) {
-            userName = ((UserDetails) principal).getUsername();
-        } else {
-            userName = principal.toString();
-        }
-        user = this.findByUsername(userName);
+        User user = securityUtils.getCurrentUser();
         return mapToUserInfoDto(user);
     }
 
@@ -104,7 +78,8 @@ public class UserServiceImpl implements UserService {
         String username = userDetails.getUsername();
 
         // 2️⃣ Load user từ DB
-        User user = userRepository.findByUsername(username);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         if (req.getAvatar() != null && !req.getAvatar().isEmpty()) {
             if (!user.getAvatarUrl().equals(AVATAR_DEFAULT_URL)) {
@@ -122,15 +97,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ProfileResponse findById(Long id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
-        return mapToUserInfoDto(user);
-    }
-
-    @Override
     @Transactional
     public void updatePassword(UpdatePasswordRequest request) {
-        User user = getCurrentUser();
+        User user = securityUtils.getCurrentUser();
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new BadRequestException("Password is incorrect");
@@ -161,7 +130,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserProfileResponse getUserProfile(Long profileUserId) {
-        User currentUser = getCurrentUser();
+        User currentUser = securityUtils.getCurrentUser();
         User user = userRepository.findById(profileUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -182,31 +151,6 @@ public class UserServiceImpl implements UserService {
         dto.setPostsCount(statusRepository.countByUserId(user.getId()));
         return dto;
     }
-
-    @Override
-    public User getCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth == null || !(auth.getPrincipal() instanceof UserDetails userDetails)) {
-            throw new UnauthorizedException("Unauthorized");
-        }
-
-        return findByUsername(userDetails.getUsername());
-    }
-
-
-    public boolean checkLogin(User user) {
-        Iterable<User> users = this.findAll();
-        boolean isCorrectUser = false;
-        for (User currentUser : users) {
-            if (currentUser.getUsername().equals(user.getUsername()) && user.getPassword().equals(currentUser.getPassword()) && currentUser.isEnabled()) {
-                isCorrectUser = true;
-                break;
-            }
-        }
-        return isCorrectUser;
-    }
-
 
     // mapper
 
