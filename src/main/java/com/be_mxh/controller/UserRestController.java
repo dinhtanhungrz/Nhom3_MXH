@@ -99,7 +99,7 @@ public class UserRestController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PatchMapping("/block/{id}")
+    @PatchMapping("/block/{id}") // PATCH
     public ResponseEntity<?> blockUser(@PathVariable("id") Long id) {
         UserResponse user = userService.blockUser(id);
         return ResponseEntity.status(HttpStatus.OK).body(
@@ -112,7 +112,7 @@ public class UserRestController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @PostMapping("/{id}/friend-request")
+    @PostMapping("/{id}/friend-request") // POST
     public ResponseEntity<?> addFriendRequest(@PathVariable("id") Long id) {
         friendshipService.friendRequest(id);
         return ResponseEntity.status(HttpStatus.OK).body(
@@ -124,4 +124,16 @@ public class UserRestController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @DeleteMapping("/{id}/cancel-request") // DELETE
+    public ResponseEntity<?> cancelFriendRequest(@PathVariable("id") Long id) {
+        friendshipService.cancelFriendRequest(id);
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Already cancel request add friends")
+                        .data(null)
+                        .build()
+        );
+    }
 }

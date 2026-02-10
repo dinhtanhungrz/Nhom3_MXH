@@ -108,8 +108,8 @@ public class UserServiceImpl implements UserService {
 
         if (req.getAvatar() != null && !req.getAvatar().isEmpty()) {
             if (!user.getAvatarUrl().equals(AVATAR_DEFAULT_URL)) {
+                imageUploadService.delete(user.getAvatarUrl());
             }
-            imageUploadService.delete(user.getAvatarUrl());
             ImageUploadResult imageUploadResult = imageUploadService.upload(req.getAvatar(), "avatars");
             user.setAvatarUrl(imageUploadResult.getUrl());
         }

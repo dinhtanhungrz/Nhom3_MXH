@@ -5,14 +5,19 @@ import com.be_mxh.entity.Friendship;
 import com.be_mxh.entity.Notification;
 import com.be_mxh.entity.User;
 import com.be_mxh.exception.BadRequestException;
+import com.be_mxh.exception.ResourceNotFoundException;
 import com.be_mxh.repository.FriendshipRepository;
 import com.be_mxh.repository.NotificationRepository;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.FriendshipService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
+@Slf4j
 @Service
 public class FriendshipServiceImpl implements FriendshipService {
     private final String DEFAULT_RELATIONSHIP = "NONE";
@@ -54,13 +59,25 @@ public class FriendshipServiceImpl implements FriendshipService {
             throw new BadRequestException("Unable to send a friend request to myself");
         }
 
-        User requester = userRepository.getReferenceById(currentUserId);
-        User addressee = userRepository.getReferenceById(userAddressesId);
+        User requester = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        User addressee = userRepository.findById(userAddressesId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        friendshipRepository.findRelationship(currentUserId, userAddressesId)
-                .ifPresent(f -> {
-                    throw new BadRequestException("Friend request already exists or users are already friends");
-                });
+        Optional<Friendship> existing = friendshipRepository.findRelationship(currentUserId, userAddressesId);
+        if (existing.isPresent()) {
+            Friendship f = existing.get();
+
+            if (f.getStatus() == Friendship.Status.PENDING &&
+                    f.getRequester().getId().equals(userAddressesId)) {
+
+                f.setStatus(Friendship.Status.ACCEPTED);
+                friendshipRepository.save(f);
+                return;
+            }
+
+            throw new BadRequestException("Friend request already exists or users are already friends");
+        }
 
         Friendship friendship = new Friendship();
         friendship.setRequester(requester);
@@ -75,5 +92,25 @@ public class FriendshipServiceImpl implements FriendshipService {
         notification.setEntityType(Notification.EntityType.USER);
         notification.setEntityId(requester.getId());
         notificationRepository.save(notification);
+    }
+
+    @Override
+    @Transactional
+    public void cancelFriendRequest(Long userAddressesId) {
+        Long currentUserId = securityUtils.getCurrentUserId();
+
+        if (currentUserId.equals(userAddressesId)) {
+            throw new BadRequestException("Unable to cancel friend request to myself");
+        }
+
+        Friendship friendship = friendshipRepository.findByRequesterIdAndAddresseeId(currentUserId, userAddressesId)
+                .orElseThrow(() -> new BadRequestException("Friendship is not found"));
+
+        if (friendship.getStatus().equals(Friendship.Status.PENDING)) {
+            friendshipRepository.delete(friendship);
+            return;
+        }
+
+        throw new BadRequestException("Friendship is not pending");
     }
 }

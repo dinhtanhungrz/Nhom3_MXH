@@ -11,6 +11,8 @@ import java.util.Optional;
 @Repository
 public interface FriendshipRepository extends JpaRepository<Friendship, Integer> {
 
+    Optional<Friendship> findByRequesterIdAndAddresseeId(Long requesterId, Long addresseeId);
+
     @Query(value = "SELECT count(f) from Friendship f where f.status = 'ACCEPTED' AND (:userId = f.requester.id OR :userId = f.addressee.id)")
     Integer countFriendshipsByUserId(@Param("userId") Long userId);
 
