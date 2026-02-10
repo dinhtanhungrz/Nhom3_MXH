@@ -7,15 +7,10 @@ import lombok.*;
 @Table(
         name = "friendships",
         indexes = {
+                @Index(name = "idx_friendship_pair", columnList = "user_low, user_high", unique = true),
+                @Index(name = "idx_friendships_status", columnList = "status"),
                 @Index(name = "idx_friendships_requester", columnList = "requester_id"),
-                @Index(name = "idx_friendships_addressee", columnList = "addressee_id"),
-                @Index(name = "idx_friendships_status", columnList = "status")
-        },
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_friend_pair",
-                        columnNames = {"requester_id", "addressee_id"}
-                )
+                @Index(name = "idx_friendships_addressee", columnList = "addressee_id")
         }
 )
 @Getter
@@ -41,10 +36,28 @@ public class Friendship {
     @Builder.Default
     private Status status = Status.PENDING;
 
+    // 🔑 GENERATED COLUMNS
+    @Column(
+            name = "user_low",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            columnDefinition = "BIGINT GENERATED ALWAYS AS (LEAST(requester_id, addressee_id)) STORED"
+    )
+    private Long userLow;
+
+    @Column(
+            name = "user_high",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            columnDefinition = "BIGINT GENERATED ALWAYS AS (GREATEST(requester_id, addressee_id)) STORED"
+    )
+    private Long userHigh;
+
     public enum Status {
         PENDING,
         ACCEPTED,
-        REJECTED,
         BLOCKED
     }
 }
