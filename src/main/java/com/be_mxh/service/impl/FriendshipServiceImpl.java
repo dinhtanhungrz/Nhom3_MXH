@@ -103,7 +103,7 @@ public class FriendshipServiceImpl implements FriendshipService {
             throw new BadRequestException("Unable to cancel friend request to myself");
         }
 
-        Friendship friendship = friendshipRepository.findByRequesterIdAndAddresseeId(currentUserId, userAddressesId)
+        Friendship friendship = friendshipRepository.findRelationship(currentUserId, userAddressesId)
                 .orElseThrow(() -> new BadRequestException("Friendship is not found"));
 
         if (friendship.getStatus().equals(Friendship.Status.PENDING)) {
@@ -112,5 +112,24 @@ public class FriendshipServiceImpl implements FriendshipService {
         }
 
         throw new BadRequestException("Friendship is not pending");
+    }
+
+    @Override
+    @Transactional
+    public void unfriend(Long userAddressesId) {
+        Long currentUserId = securityUtils.getCurrentUserId();
+        if (currentUserId.equals(userAddressesId)) {
+            throw new BadRequestException("Unable to cancel friend request to myself");
+        }
+
+        Friendship friendship = friendshipRepository.findRelationship(currentUserId, userAddressesId)
+                .orElseThrow(() -> new BadRequestException("The two users are not friends."));
+
+        if (friendship.getStatus().equals(Friendship.Status.ACCEPTED)) {
+            friendshipRepository.delete(friendship);
+            return;
+        }
+
+        throw new BadRequestException("The two users are not friends");
     }
 }

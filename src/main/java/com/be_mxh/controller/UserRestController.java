@@ -112,26 +112,39 @@ public class UserRestController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @PostMapping("/{id}/friend-request") // POST
+    @PostMapping("/friend-request/{id}") // POST
     public ResponseEntity<?> addFriendRequest(@PathVariable("id") Long id) {
         friendshipService.friendRequest(id);
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.<Void>builder()
                         .code(HttpStatus.OK.value())
-                        .message("Already send request add friends")
+                        .message("Friend request sent")
                         .data(null)
                         .build()
         );
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    @DeleteMapping("/{id}/cancel-request") // DELETE
+    @DeleteMapping("/cancel-request/{id}") // DELETE
     public ResponseEntity<?> cancelFriendRequest(@PathVariable("id") Long id) {
         friendshipService.cancelFriendRequest(id);
         return ResponseEntity.status(HttpStatus.OK).body(
                 ApiResponse.<Void>builder()
                         .code(HttpStatus.OK.value())
-                        .message("Already cancel request add friends")
+                        .message("Friend request has been cancelled.")
+                        .data(null)
+                        .build()
+        );
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @DeleteMapping("/unfriend/{id}") // DELETE
+    public ResponseEntity<?> unfriend(@PathVariable("id") Long id) {
+        friendshipService.unfriend(id);
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Unfriended this user")
                         .data(null)
                         .build()
         );

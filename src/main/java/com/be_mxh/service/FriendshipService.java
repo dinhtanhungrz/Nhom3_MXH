@@ -6,4 +6,6 @@ public interface FriendshipService {
     void friendRequest(Long userAddressesId);
 
     void cancelFriendRequest(Long userAddressesId);
+
+    void unfriend(Long userAddressesId);
 }
