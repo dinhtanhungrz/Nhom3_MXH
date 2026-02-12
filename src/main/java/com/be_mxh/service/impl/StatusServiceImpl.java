@@ -190,6 +190,12 @@ public class StatusServiceImpl implements StatusService {
         statusRepository.save(status);
     }
 
+    @Override
+    public List<Status> findAllByContentContaining(String query) {
+        return statusRepository.findAllByContentContaining(query);
+    }
+
+
     /* =========================
        MAPPER
        ========================= */
@@ -208,4 +214,11 @@ public class StatusServiceImpl implements StatusService {
                 )
                 .build();
     }
+
+
+//    @Override
+//    public List<Status> getVisibleStatuses(Long ownerId, Long viewerId) {
+//        return statusRepository.findVisibleStatuses(ownerId, viewerId);
+//    }
+
 }

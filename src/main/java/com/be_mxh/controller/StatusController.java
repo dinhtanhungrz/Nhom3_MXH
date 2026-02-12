@@ -85,4 +85,21 @@ public class StatusController {
         statusService.deleteStatus(id, userPrincipal.getId());
         return ResponseEntity.ok("Xoá status thành công");
     }
+
+    @GetMapping("/query")
+    public ResponseEntity<?> query(@RequestParam("query") String query) {
+        List<Status> statuses = statusService.findAllByContentContaining(query);
+        return ResponseEntity.ok(statuses);
+    }
+
+//    @GetMapping("/user/{ownerId}")
+//    public List<Status> getUserStatuses(
+//            @PathVariable Long ownerId,
+//            @AuthenticationPrincipal UserPrincipal currentUser
+//    ) {
+//
+//        Long viewerId = currentUser.getId();
+//
+//        return statusService.getVisibleStatuses(ownerId, viewerId);
+//    }
 }

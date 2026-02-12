@@ -5,6 +5,8 @@ import com.be_mxh.dto.status.StatusResponse;
 import com.be_mxh.entity.Status;
 import com.be_mxh.entity.UserPrincipal;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -33,7 +35,10 @@ public interface StatusService {
     /**
      * Xoá status (chỉ chủ status được xoá)
      */
+
+
     void deleteStatus(Long statusId, Long userId);
+
 
     @Transactional
     StatusResponse createStatus(
@@ -47,4 +52,9 @@ public interface StatusService {
 
     @Transactional
     void deleteStatus(Long statusId, UserPrincipal currentUser);
+
+    List<Status> findAllByContentContaining(String query);
+
+
+//    List<Status> getVisibleStatuses(Long ownerId, Long viewerId);
 }
