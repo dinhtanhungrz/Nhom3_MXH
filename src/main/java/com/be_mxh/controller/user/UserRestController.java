@@ -64,5 +64,13 @@ public class UserRestController {
                         .build()
         );
     }
+    @GetMapping("/public/{username}")
+    public ResponseEntity<?> getPublicProfile(@PathVariable String username) {
+        UserProfileResponse profile = userService.getPublicProfileByUsername(username);
+        return ResponseEntity.ok(ApiResponse.builder()
+                .code(HttpStatus.OK.value())
+                .data(profile)
+                .build());
+    }
 
 }

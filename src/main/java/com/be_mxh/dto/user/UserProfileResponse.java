@@ -19,4 +19,9 @@ public class UserProfileResponse {
     private LocalDateTime dateOfBirth;
     private String gender;
     private String hobby;
+
+    private String displayFriendsStatus;
+    private boolean isSelf;
+    private boolean isFriend;
+    private String relationshipStatus;
 }

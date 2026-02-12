@@ -14,6 +14,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
+@CrossOrigin("*")
+
 public class StatusController {
 
     private final StatusServiceImpl postService;

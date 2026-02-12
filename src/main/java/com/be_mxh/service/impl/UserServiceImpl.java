@@ -69,7 +69,8 @@ public class UserServiceImpl implements UserService {
     public RegisterResponse save(RegisterRequest registerRequest) {
         User user = mapToEntity(registerRequest);
         if (registerRequest.getRole() == null || registerRequest.getRole().isEmpty()) {
-            Role role = roleService.findByName("ROLE_USER");
+            Role role = Optional.ofNullable(roleService.findByName("ROLE_USER"))
+                    .orElseThrow(() -> new RuntimeException("ROLE_USER not found"));
             Set<Role> roles = new HashSet<>();
             roles.add(role);
             user.setRoles(roles);
@@ -100,6 +101,33 @@ public class UserServiceImpl implements UserService {
         }
         user = this.findByUsername(userName);
         return mapToUserInfoDto(user);
+    }
+
+    @Override
+    public UserProfileResponse getPublicProfileByUsername(String username) {
+        // 1. Tìm User mục tiêu bằng username từ tham số truyền vào
+        User targetUser = userRepository.findByUsername(username);
+        if (targetUser == null) {
+            throw new RuntimeException("User not found with username: " + username);
+        }
+
+        // 2. Lấy User đang đăng nhập để so sánh
+        User currentUser = getCurrentUser();
+
+        // 3. Tính toán quan hệ
+        boolean isSelf = currentUser.getId().equals(targetUser.getId());
+        String relationshipStatus = "NONE";
+        boolean isFriend = false;
+
+        if (!isSelf) {
+            relationshipStatus = userRepository.findRelationshipStatus(currentUser.getId(), targetUser.getId());
+            if (relationshipStatus == null) {
+                relationshipStatus = "NONE";
+            }
+            isFriend = "ACCEPTED".equals(relationshipStatus);
+        }
+
+        return mapToUserInfoDto(targetUser,isSelf,isFriend,relationshipStatus);
     }
 
     @Override
@@ -217,7 +245,8 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    private UserProfileResponse mapToUserInfoDto(User user) {
+
+    private UserProfileResponse mapToUserInfoDto(User user, boolean isSelf, boolean isFriend, String relationshipStatus) {
         return UserProfileResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -230,6 +259,14 @@ public class UserServiceImpl implements UserService {
                 .address(user.getAddress())
                 .hobby(user.getHobby())
                 .gender(user.getGender() != null ? user.getGender().name() : null)
+                .displayFriendsStatus(user.getDisplayFriendsStatus() != null ? user.getDisplayFriendsStatus().name() : "PUBLIC")
+                .isSelf(isSelf)
+                .isFriend(isFriend)
+                .relationshipStatus(relationshipStatus)
                 .build();
+    }
+
+    private UserProfileResponse mapToUserInfoDto(User user) {
+        return mapToUserInfoDto(user, true, false, "NONE");
     }
 }

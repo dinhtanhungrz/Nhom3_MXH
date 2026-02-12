@@ -20,6 +20,8 @@ public interface UserService extends UserDetailsService {
 
     UserProfileResponse getProfile();
 
+    UserProfileResponse getPublicProfileByUsername(String username);
+
     UserProfileResponse updateProfile(UpdateProfileRequest updateProfileRequest);
 
     Optional<User> findById(Long id);

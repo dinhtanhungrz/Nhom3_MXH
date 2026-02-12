@@ -94,6 +94,7 @@ public class GlobalExceptionHandler {
     // Runtime exception chung (500)
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {
+        log.error("Runtime exception occurred", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 ApiResponse.<Object>builder()
                         .code(500)

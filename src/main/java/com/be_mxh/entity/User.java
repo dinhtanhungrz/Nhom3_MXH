@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 
@@ -36,7 +37,9 @@ public class User {
     @JoinTable(name = "user_role",
             joinColumns = {@JoinColumn(name = "user_id")},
             inverseJoinColumns = {@JoinColumn(name = "role_id")})
-    private Set<Role> roles;
+    @Builder.Default
+    private Set<Role> roles = new HashSet<>();
+
 
     @Builder.Default
     @Column(name = "enabled", nullable = false)
@@ -83,7 +86,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(name = "display_friends_status", nullable = false)
     @Builder.Default
-    private DisplayFriendsStatus displayFriendsStatus = DisplayFriendsStatus.PUBlLIC;
+    private DisplayFriendsStatus displayFriendsStatus = DisplayFriendsStatus.PUBLIC;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -104,7 +107,7 @@ public class User {
     }
 
     public enum DisplayFriendsStatus {
-        PUBlLIC,
+        PUBLIC,
         PRIVATE
     }
 
@@ -115,4 +118,5 @@ public class User {
         EXPIRED,
         DELETED
     }
+
 }
