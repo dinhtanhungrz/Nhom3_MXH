@@ -1,30 +1,21 @@
 package com.be_mxh.service;
 
-import com.be_mxh.dto.user.UpdatePasswordRequest;
-import com.be_mxh.dto.user.UpdateProfileRequest;
-import com.be_mxh.dto.user.UserProfileResponse;
-import com.be_mxh.dto.user.UserResponse;
-import com.be_mxh.entity.User;
-import org.springframework.security.core.userdetails.UserDetails;
+import com.be_mxh.dto.user.*;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.util.List;
 
 public interface UserService extends UserDetailsService {
 
-    Iterable<User> findAll();
+    ProfileResponse getProfile();
 
-    User findByUsername(String username);
-
-    UserProfileResponse getProfile();
-
-    UserProfileResponse updateProfile(UpdateProfileRequest updateProfileRequest);
-
-    UserProfileResponse findById(Long id);
+    ProfileResponse updateProfile(ProfileRequest profileRequest);
 
     void updatePassword(UpdatePasswordRequest updatePasswordRequest);
 
     List<UserResponse> getAllUsers();
 
     UserResponse blockUser(Long id);
+
+    UserProfileResponse getUserProfile(Long profileUserId);
 }

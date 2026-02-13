@@ -23,8 +23,9 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
       ORDER BY p.createdAt DESC
     """)
 
-
     List<Status> feedByFollow(Long userId);
+
+    int countByUserId(Long userId);
 
     List<Status> findAllByContentContaining(String query);
 
