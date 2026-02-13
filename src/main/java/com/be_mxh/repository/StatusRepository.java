@@ -28,31 +28,31 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
 
     List<Status> findAllByContentContaining(String query);
 
-//    @Query("""
-//    SELECT s FROM Status s
-//    WHERE s.user.id = :ownerId
-//    AND s.active = true
-//    AND (
-//        s.visibility = 'PUBLIC'
-//        OR s.user.id = :viewerId
-//        OR (
-//            s.visibility = 'FRIENDS_ONLY'
-//            AND EXISTS (
-//                SELECT f FROM Friendship f
-//                WHERE f.status = 'ACCEPTED'
-//                AND (
-//                    (f.requester.id = :viewerId AND f.addressee.id = :ownerId)
-//                    OR
-//                    (f.requester.id = :ownerId AND f.addressee.id = :viewerId)
-//                )
-//            )
-//        )
-//    )
-//    ORDER BY s.createdAt DESC
-//""")
-//    List<Status> findVisibleStatuses(
-//            @Param("ownerId") Long ownerId,
-//            @Param("viewerId") Long viewerId
-//    );
+    @Query("""
+    SELECT s FROM Status s
+    WHERE s.user.id = :ownerId
+    AND s.active = true
+    AND (
+        s.visibility = 'PUBLIC'
+        OR s.user.id = :viewerId
+        OR (
+            s.visibility = 'FRIENDS_ONLY'
+            AND EXISTS (
+                SELECT f FROM Friendship f
+                WHERE f.status = 'ACCEPTED'
+                AND (
+                    (f.requester.id = :viewerId AND f.addressee.id = :ownerId)
+                    OR
+                    (f.requester.id = :ownerId AND f.addressee.id = :viewerId)
+                )
+            )
+        )
+    )
+    ORDER BY s.createdAt DESC
+""")
+    List<Status> findVisibleStatuses(
+            @Param("ownerId") Long ownerId,
+            @Param("viewerId") Long viewerId
+    );
 
 }

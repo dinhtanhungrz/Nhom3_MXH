@@ -56,5 +56,5 @@ public interface StatusService {
     List<Status> findAllByContentContaining(String query);
 
 
-//    List<Status> getVisibleStatuses(Long ownerId, Long viewerId);
+    List<Status> getVisibleStatuses(Long ownerId, Long viewerId);
 }

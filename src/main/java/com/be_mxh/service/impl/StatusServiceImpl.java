@@ -216,9 +216,9 @@ public class StatusServiceImpl implements StatusService {
     }
 
 
-//    @Override
-//    public List<Status> getVisibleStatuses(Long ownerId, Long viewerId) {
-//        return statusRepository.findVisibleStatuses(ownerId, viewerId);
-//    }
+    @Override
+    public List<Status> getVisibleStatuses(Long ownerId, Long viewerId) {
+        return statusRepository.findVisibleStatuses(ownerId, viewerId);
+    }
 
 }

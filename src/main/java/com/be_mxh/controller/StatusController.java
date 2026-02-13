@@ -92,14 +92,14 @@ public class StatusController {
         return ResponseEntity.ok(statuses);
     }
 
-//    @GetMapping("/user/{ownerId}")
-//    public List<Status> getUserStatuses(
-//            @PathVariable Long ownerId,
-//            @AuthenticationPrincipal UserPrincipal currentUser
-//    ) {
-//
-//        Long viewerId = currentUser.getId();
-//
-//        return statusService.getVisibleStatuses(ownerId, viewerId);
-//    }
+    @GetMapping("/user/{ownerId}")
+    public List<Status> getUserStatuses(
+            @PathVariable Long ownerId,
+            @AuthenticationPrincipal UserPrincipal currentUser
+    ) {
+
+        Long viewerId = currentUser.getId();
+
+        return statusService.getVisibleStatuses(ownerId, viewerId);
+    }
 }
