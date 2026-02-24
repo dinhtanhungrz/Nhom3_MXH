@@ -15,6 +15,9 @@ import com.be_mxh.service.StatusService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -207,5 +210,42 @@ public class StatusServiceImpl implements StatusService {
                                 .toList()
                 )
                 .build();
+    }
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<StatusResponse> getPublicStatusesByUser(
+            Long userId,
+            int page,
+            int size
+    ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Status> statusPage =
+                statusRepository
+                        .findByUserIdAndStatusAndActiveTrueOrderByCreatedAtDesc(
+                                userId,
+                                Status.Visibility.PUBLIC,
+                                (java.awt.print.Pageable) pageable
+                        );
+
+        return statusPage.map(status -> {
+
+            List<String> imageUrls =
+                    statusImageRepository
+                            .findByStatusIdOrderBySortOrderAsc(status.getId())
+                            .stream()
+                            .map(StatusImage::getUrl)
+                            .toList();
+
+            return StatusResponse.builder()
+                    .id(status.getId())
+                    .content(status.getContent())
+                    .username(status.getUser().getUsername())
+                    .visibility(String.valueOf(status.getVisibility()))
+                    .createdAt(status.getCreatedAt())
+                    .imageUrls(imageUrls)
+                    .build();
+        });
     }
 }

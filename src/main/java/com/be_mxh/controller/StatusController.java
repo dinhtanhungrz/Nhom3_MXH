@@ -1,5 +1,6 @@
 package com.be_mxh.controller;
 
+import com.be_mxh.dto.status.StatusResponse;
 import com.be_mxh.entity.Status;
 import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.service.StatusService;
@@ -7,6 +8,7 @@ import com.be_mxh.service.impl.CommentServiceImpl;
 import com.be_mxh.service.impl.LikeServiceImpl;
 import com.be_mxh.service.impl.StatusServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -84,5 +86,15 @@ public class StatusController {
     ) {
         statusService.deleteStatus(id, userPrincipal.getId());
         return ResponseEntity.ok("Xoá status thành công");
+    }
+    @GetMapping("/user/{userId}/public")
+    public ResponseEntity<Page<StatusResponse>> getPublicStatuses(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(
+                statusService.getPublicStatusesByUser(userId, page, size)
+        );
     }
 }

@@ -13,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 public class StatusResponse {
     private Long id;
+    private String username;
     private String content;
     private String visibility;
     private LocalDateTime createdAt;
