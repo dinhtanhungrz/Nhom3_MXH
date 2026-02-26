@@ -17,6 +17,7 @@ public interface StatusService {
      */
     Status createStatus(
             String content,
+            String visibility,
             List<MultipartFile> images,
             Long userId
     );
@@ -24,17 +25,17 @@ public interface StatusService {
     /**
      * Lấy danh sách status cho news feed
      */
-    List<Status> getFeedStatuses(Long userId);
+    List<StatusResponse> getFeedStatuses(Long userId);
 
     /**
      * Lấy chi tiết 1 status
      */
-    Status getStatusById(Long statusId, Long userId);
+    Status getStatusById(Long id, Long userId);
 
     /**
      * Xoá status (chỉ chủ status được xoá)
      */
-    void deleteStatus(Long statusId, Long userId);
+    void deleteStatus(Long id, Long userId);
 
     @Transactional
     StatusResponse createStatus(
@@ -53,4 +54,5 @@ public interface StatusService {
             int page,
             int size
     );
+
 }
