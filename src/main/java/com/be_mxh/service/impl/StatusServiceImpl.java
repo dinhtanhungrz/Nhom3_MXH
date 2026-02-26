@@ -7,9 +7,11 @@ import com.be_mxh.entity.Status;
 import com.be_mxh.entity.StatusImage;
 import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
+import com.be_mxh.repository.FriendshipRepository;
 import com.be_mxh.repository.StatusImageRepository;
 import com.be_mxh.repository.StatusRepository;
 import com.be_mxh.repository.UserRepository;
+import org.springframework.security.access.AccessDeniedException;
 import com.be_mxh.service.ImageUploadService;
 import com.be_mxh.service.StatusService;
 import jakarta.persistence.EntityNotFoundException;
@@ -29,11 +31,13 @@ public class StatusServiceImpl implements StatusService {
     private final StatusImageRepository statusImageRepository;
     private final ImageUploadService imageUploadService;
     private final UserRepository userRepository;
+    private final FriendshipRepository friendshipRepository;
 
-    /* =========================
-       CREATE STATUS
-       ========================= */
-
+    /*
+     * =========================
+     * CREATE STATUS
+     * =========================
+     */
 
     @Override
     public Status createStatus(String content, List<MultipartFile> images, Long userId) {
@@ -56,10 +60,10 @@ public class StatusServiceImpl implements StatusService {
             int sortOrder = 0;
 
             for (MultipartFile file : images) {
-                if (file.isEmpty()) continue;
+                if (file.isEmpty())
+                    continue;
 
-                ImageUploadResult uploadResult =
-                        imageUploadService.upload(file, folder);
+                ImageUploadResult uploadResult = imageUploadService.upload(file, folder);
 
                 StatusImage statusImage = StatusImage.builder()
                         .status(status)
@@ -95,8 +99,7 @@ public class StatusServiceImpl implements StatusService {
     public StatusResponse createStatus(
             CreateStatusRequest request,
             List<MultipartFile> images,
-            UserPrincipal currentUser
-    ) {
+            UserPrincipal currentUser) {
 
         // 1️⃣ Tạo Status
         Status status = Status.builder()
@@ -123,7 +126,7 @@ public class StatusServiceImpl implements StatusService {
                 int order = 0;
                 for (MultipartFile file : images) {
 
-                    ImageUploadResult upload = imageUploadService.upload(file,folder);
+                    ImageUploadResult upload = imageUploadService.upload(file, folder);
                     uploadedPublicIds.add(upload.getPublicId());
 
                     StatusImage image = StatusImage.builder()
@@ -148,9 +151,11 @@ public class StatusServiceImpl implements StatusService {
         return mapToResponse(status, statusImages);
     }
 
-    /* =========================
-       GET STATUS
-       ========================= */
+    /*
+     * =========================
+     * GET STATUS
+     * =========================
+     */
 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @Override
@@ -165,15 +170,39 @@ public class StatusServiceImpl implements StatusService {
 
         // TODO: enforce privacy (PUBLIC / FRIENDS_ONLY / ONLY_ME)
 
-        List<StatusImage> images =
-                statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+        Long ownerId = status.getUser().getId(); // Ai là chủ status?
+        Long viewerId = currentUser.getId(); // Ai đang xem?
+        switch (status.getVisibility()) {
+            case ONLY_ME -> {
+                // Chỉ chủ tài khoản mới được xem
+                // Nếu người xem KHÁC chủ → ném lỗi 403
+                if (!ownerId.equals(viewerId))
+                    throw new AccessDeniedException("Bạn không có quyền xem status này");
+            }
+            case FRIENDS_ONLY -> {
+                if (!ownerId.equals(viewerId)) { // chủ thì cứ cho xem
+                    // Hỏi database: viewerId và ownerId có phải bạn bè không?
+                    boolean areFriends = friendshipRepository
+                            .existsAcceptedFriendship(viewerId, ownerId);
+                    if (!areFriends)
+                        throw new AccessDeniedException("Bạn không có quyền xem status này");
+                }
+            }
+            case PUBLIC -> {
+                // Không làm gì — ai cũng xem được
+            }
+        }
+
+        List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
 
         return mapToResponse(status, images);
     }
 
-    /* =========================
-       DELETE STATUS (SOFT)
-       ========================= */
+    /*
+     * =========================
+     * DELETE STATUS (SOFT)
+     * =========================
+     */
 
     @Transactional
     @Override
@@ -190,15 +219,11 @@ public class StatusServiceImpl implements StatusService {
         statusRepository.save(status);
     }
 
-    @Override
-    public List<Status> findAllByContentContaining(String query) {
-        return statusRepository.findAllByContentContaining(query);
-    }
-
-
-    /* =========================
-       MAPPER
-       ========================= */
+    /*
+     * =========================
+     * MAPPER
+     * =========================
+     */
 
     private StatusResponse mapToResponse(Status status, List<StatusImage> images) {
 
@@ -210,15 +235,23 @@ public class StatusServiceImpl implements StatusService {
                 .imageUrls(
                         images.stream()
                                 .map(StatusImage::getUrl)
-                                .toList()
-                )
+                                .toList())
                 .build();
     }
-
 
     @Override
     public List<Status> getVisibleStatuses(Long ownerId, Long viewerId) {
         return statusRepository.findVisibleStatuses(ownerId, viewerId);
+    }
+
+    @Override
+    public List<Status> searchUserStatuses(Long ownerId, Long viewerId, String keyword) {
+        return statusRepository.searchVisibleStatuses(ownerId, viewerId, keyword);
+    }
+
+    @Override
+    public List<Status> findAllByContentContaining(String query) {
+        return statusRepository.findAllByContentContaining(query);
     }
 
 }

@@ -13,48 +13,43 @@ import java.util.List;
 
 public interface StatusService {
 
-    /**
-     * Tạo status mới (có thể kèm nhiều ảnh)
-     */
-    Status createStatus(
-            String content,
-            List<MultipartFile> images,
-            Long userId
-    );
+        /**
+         * Tạo status mới (có thể kèm nhiều ảnh)
+         */
+        Status createStatus(
+                        String content,
+                        List<MultipartFile> images,
+                        Long userId);
 
-    /**
-     * Lấy danh sách status cho news feed
-     */
-    List<Status> getFeedStatuses(Long userId);
+        /**
+         * Lấy danh sách status cho news feed
+         */
+        List<Status> getFeedStatuses(Long userId);
 
-    /**
-     * Lấy chi tiết 1 status
-     */
-    Status getStatusById(Long statusId, Long userId);
+        /**
+         * Lấy chi tiết 1 status
+         */
+        Status getStatusById(Long statusId, Long userId);
 
-    /**
-     * Xoá status (chỉ chủ status được xoá)
-     */
+        /**
+         * Xoá status (chỉ chủ status được xoá)
+         */
 
+        void deleteStatus(Long statusId, Long userId);
 
-    void deleteStatus(Long statusId, Long userId);
+        @Transactional
+        StatusResponse createStatus(
+                        CreateStatusRequest request,
+                        List<MultipartFile> images,
+                        UserPrincipal currentUser);
 
+        @org.springframework.transaction.annotation.Transactional(readOnly = true)
+        StatusResponse getStatusById(Long statusId, UserPrincipal currentUser);
 
-    @Transactional
-    StatusResponse createStatus(
-            CreateStatusRequest request,
-            List<MultipartFile> images,
-            UserPrincipal currentUser
-    );
+        @Transactional
+        void deleteStatus(Long statusId, UserPrincipal currentUser);
 
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    StatusResponse getStatusById(Long statusId, UserPrincipal currentUser);
-
-    @Transactional
-    void deleteStatus(Long statusId, UserPrincipal currentUser);
-
-    List<Status> findAllByContentContaining(String query);
-
-
-    List<Status> getVisibleStatuses(Long ownerId, Long viewerId);
+        List<Status> findAllByContentContaining(String query);
+        List<Status> getVisibleStatuses(Long ownerId, Long viewerId);
+        List<Status> searchUserStatuses(Long ownerId, Long viewerId, String keyword);
 }

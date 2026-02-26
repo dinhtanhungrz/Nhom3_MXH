@@ -18,4 +18,14 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Integer>
 
     @Query("SELECT f FROM Friendship f WHERE (f.requester.id = :u1 AND f.addressee.id = :u2) OR (f.requester.id = :u2 AND f.addressee.id = :u1)")
     Optional<Friendship> findRelationship(@Param("u1") Long user1, @Param("u2") Long user2);
+
+    @Query("""
+    SELECT COUNT(f) > 0 FROM Friendship f
+    WHERE f.status = 'ACCEPTED'
+    AND (
+        (f.requester.id = :a AND f.addressee.id = :b)
+        OR  (f.requester.id = :b AND f.addressee.id = :a)
+    )
+    """)
+    boolean existsAcceptedFriendship(@Param("a") Long a, @Param("b") Long b);
 }

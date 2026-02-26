@@ -14,15 +14,14 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
     List<Status> findByActiveTrueOrderByCreatedAtDesc();
 
     @Query("""
-      SELECT p FROM Status p
-      WHERE p.active = false
-      AND p.user.id IN (
-        SELECT f.requester.id FROM Friendship f
-        WHERE f.requester.id= :userId
-      )
-      ORDER BY p.createdAt DESC
-    """)
-
+              SELECT p FROM Status p
+              WHERE p.active = false
+              AND p.user.id IN (
+                SELECT f.requester.id FROM Friendship f
+                WHERE f.requester.id= :userId
+              )
+              ORDER BY p.createdAt DESC
+            """)
     List<Status> feedByFollow(Long userId);
 
     int countByUserId(Long userId);
@@ -30,30 +29,56 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
     List<Status> findAllByContentContaining(String query);
 
     @Query("""
-    SELECT s FROM Status s
-    WHERE s.user.id = :ownerId
-    AND s.active = true
-    AND (
-        s.visibility = 'PUBLIC'
-        OR s.user.id = :viewerId
-        OR (
-            s.visibility = 'FRIENDS_ONLY'
-            AND EXISTS (
-                SELECT f FROM Friendship f
-                WHERE f.status = 'ACCEPTED'
+                SELECT s FROM Status s
+                WHERE s.user.id = :ownerId
+                AND s.active = true
+                AND LOWER(s.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 AND (
-                    (f.requester.id = :viewerId AND f.addressee.id = :ownerId)
-                    OR
-                    (f.requester.id = :ownerId AND f.addressee.id = :viewerId)
+                    s.visibility = 'PUBLIC'
+                    OR s.user.id = :viewerId
+                    OR (
+                        s.visibility = 'FRIENDS_ONLY'
+                        AND EXISTS (
+                            SELECT f FROM Friendship f
+                            WHERE f.status = 'ACCEPTED'
+                            AND (
+                                (f.requester.id = :viewerId AND f.addressee.id = :ownerId)
+                                OR
+                                (f.requester.id = :ownerId AND f.addressee.id = :viewerId)
+                            )
+                        )
+                    )
                 )
-            )
-        )
-    )
-    ORDER BY s.createdAt DESC
-""")
+                ORDER BY s.createdAt DESC
+            """)
+    List<Status> searchVisibleStatuses(
+            @Param("ownerId") Long ownerId,
+            @Param("viewerId") Long viewerId,
+            @Param("keyword") String keyword);
+
+    @Query("""
+                SELECT s FROM Status s
+                WHERE s.user.id = :ownerId
+                AND s.active = true
+                AND (
+                    s.visibility = 'PUBLIC'
+                    OR s.user.id = :viewerId
+                    OR (
+                        s.visibility = 'FRIENDS_ONLY'
+                        AND EXISTS (
+                            SELECT f FROM Friendship f
+                            WHERE f.status = 'ACCEPTED'
+                            AND (
+                                (f.requester.id = :viewerId AND f.addressee.id = :ownerId)
+                                OR
+                                (f.requester.id = :ownerId AND f.addressee.id = :viewerId)
+                            )
+                        )
+                    )
+                )
+                ORDER BY s.createdAt DESC
+            """)
     List<Status> findVisibleStatuses(
             @Param("ownerId") Long ownerId,
-            @Param("viewerId") Long viewerId
-    );
-
+            @Param("viewerId") Long viewerId);
 }
