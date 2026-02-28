@@ -3,10 +3,14 @@ package com.be_mxh.controller;
 import com.be_mxh.dto.ApiResponse;
 import com.be_mxh.dto.user.*;
 import com.be_mxh.service.FriendshipService;
+import com.be_mxh.service.MutualFriendsService;
 import com.be_mxh.service.UserService;
 import com.be_mxh.validation.PasswordValidator;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +26,8 @@ public class UserRestController {
     private UserService userService;
     @Autowired
     private FriendshipService friendshipService;
+    @Autowired
+    private MutualFriendsService mutualFriendsService;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/me")
@@ -149,4 +155,21 @@ public class UserRestController {
                         .build()
         );
     }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // cái này để xác thực. ko them thi ko co token van vao duoc
+    @GetMapping("/{id}/mutual-friends")
+    public Page<MutualFriends> getMutualFriends(
+            @PathVariable("id") Long targetUserId,
+            Pageable pageable
+    ) {
+        return mutualFriendsService.getMutualFriends(targetUserId, pageable);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @GetMapping("/{id}/friends")
+    public Page<FriendshipsResponse> getFriends(
+            @PathVariable Long id,
+            @PageableDefault(page = 0, size = 10) Pageable pageable
+    ){
+        return friendshipService.getFriends(id, pageable);    }
 }
