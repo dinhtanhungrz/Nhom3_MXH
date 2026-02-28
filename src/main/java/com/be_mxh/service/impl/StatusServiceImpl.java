@@ -1,5 +1,6 @@
 package com.be_mxh.service.impl;
 
+import com.be_mxh.config.security.SecurityUtils;
 import com.be_mxh.dto.image.ImageUploadResult;
 import com.be_mxh.dto.status.CreateStatusRequest;
 import com.be_mxh.dto.status.StatusResponse;
@@ -15,43 +16,45 @@ import com.be_mxh.service.StatusService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StatusServiceImpl implements StatusService {
 
     private final StatusRepository statusRepository;
     private final StatusImageRepository statusImageRepository;
     private final ImageUploadService imageUploadService;
     private final UserRepository userRepository;
+    private final SecurityUtils securityUtils;
 
     /* =========================
        CREATE STATUS
        ========================= */
 
-
+    @Transactional
     @Override
-    public Status createStatus(String content, List<MultipartFile> images, Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+    public void createStatus(String content, String visibility, List<MultipartFile> images) {
+        User user = securityUtils.getCurrentUser();
 
         Status status = Status.builder()
                 .content(content)
                 .user(user)
-                .visibility(Status.Visibility.PUBLIC)
+                .visibility(
+                        visibility.equals("ONLY_ME") ? Status.Visibility.ONLY_ME
+                                : visibility.equals("FRIENDS_ONLY") ? Status.Visibility.FRIENDS_ONLY
+                                : Status.Visibility.PUBLIC)
                 .active(true)
                 .build();
 
         // Lưu status trước để có ID
-        status = statusRepository.save(status);
+        Status result = statusRepository.save(status);
 
         // Upload ảnh nếu có
         if (images != null && !images.isEmpty()) {
@@ -61,11 +64,10 @@ public class StatusServiceImpl implements StatusService {
             for (MultipartFile file : images) {
                 if (file.isEmpty()) continue;
 
-                ImageUploadResult uploadResult =
-                        imageUploadService.upload(file, folder);
+                ImageUploadResult uploadResult = imageUploadService.upload(file, folder);
 
                 StatusImage statusImage = StatusImage.builder()
-                        .status(status)
+                        .status(result)
                         .url(uploadResult.getUrl())
                         .publicId(uploadResult.getPublicId())
                         .sortOrder(sortOrder++)
@@ -74,12 +76,10 @@ public class StatusServiceImpl implements StatusService {
                 statusImageRepository.save(statusImage);
             }
         }
-
-        return status;
     }
 
     @Override
-    public List<Status> getFeedStatuses(Long userId) {
+    public List<StatusResponse> getFeedStatuses(Long userId) {
         return List.of();
     }
 
@@ -93,63 +93,68 @@ public class StatusServiceImpl implements StatusService {
 
     }
 
-    @Transactional
     @Override
-    public StatusResponse createStatus(
-            CreateStatusRequest request,
-            List<MultipartFile> images,
-            UserPrincipal currentUser
-    ) {
-
-        // 1️⃣ Tạo Status
-        Status status = Status.builder()
-                .content(request.getContent())
-                .visibility(request.getVisibility())
-                .user(User.builder().id(currentUser.getId()).build())
-                .active(true)
-                .build();
-
-        statusRepository.save(status);
-
-        List<StatusImage> statusImages = new ArrayList<>();
-        List<String> uploadedPublicIds = new ArrayList<>();
-
-        // 2️⃣ Upload & lưu ảnh
-        if (images != null && !images.isEmpty()) {
-
-            if (images.size() > 10) {
-                throw new IllegalArgumentException("Tối đa 10 ảnh cho mỗi status");
-            }
-
-            try {
-                String folder = "statuses/" + status.getId();
-                int order = 0;
-                for (MultipartFile file : images) {
-
-                    ImageUploadResult upload = imageUploadService.upload(file,folder);
-                    uploadedPublicIds.add(upload.getPublicId());
-
-                    StatusImage image = StatusImage.builder()
-                            .status(status)
-                            .url(upload.getUrl())
-                            .publicId(upload.getPublicId())
-                            .sortOrder(order++)
-                            .build();
-
-                    statusImages.add(image);
-                }
-
-                statusImageRepository.saveAll(statusImages);
-
-            } catch (Exception ex) {
-                // rollback DB + cleanup ảnh đã upload
-                uploadedPublicIds.forEach(imageUploadService::delete);
-                throw ex;
-            }
-        }
-
-        return mapToResponse(status, statusImages);
+    public StatusResponse createStatus(CreateStatusRequest request, List<MultipartFile> images, UserPrincipal currentUser) {
+        return null;
     }
+//
+//    @Transactional
+//    @Override
+//    public StatusResponse createStatus(
+//            CreateStatusRequest request,
+//            List<MultipartFile> images,
+//            UserPrincipal currentUser
+//    ) {
+//
+//        // 1️⃣ Tạo Status
+//        Status status = Status.builder()
+//                .content(request.getContent())
+//                .visibility(request.getVisibility())
+//                .user(User.builder().id(currentUser.getId()).build())
+//                .active(true)
+//                .build();
+//
+//        statusRepository.save(status);
+//
+//        List<StatusImage> statusImages = new ArrayList<>();
+//        List<String> uploadedPublicIds = new ArrayList<>();
+//
+//        // 2️⃣ Upload & lưu ảnh
+//        if (images != null && !images.isEmpty()) {
+//
+//            if (images.size() > 10) {
+//                throw new IllegalArgumentException("Tối đa 10 ảnh cho mỗi status");
+//            }
+//
+//            try {
+//                String folder = "statuses/" + status.getId();
+//                int order = 0;
+//                for (MultipartFile file : images) {
+//
+//                    ImageUploadResult upload = imageUploadService.upload(file, folder);
+//                    uploadedPublicIds.add(upload.getPublicId());
+//
+//                    StatusImage image = StatusImage.builder()
+//                            .status(status)
+//                            .url(upload.getUrl())
+//                            .publicId(upload.getPublicId())
+//                            .sortOrder(order++)
+//                            .build();
+//
+//                    statusImages.add(image);
+//                }
+//
+//                statusImageRepository.saveAll(statusImages);
+//
+//            } catch (Exception ex) {
+//                // rollback DB + cleanup ảnh đã upload
+//                uploadedPublicIds.forEach(imageUploadService::delete);
+//                throw ex;
+//            }
+//        }
+//
+//        return mapToResponse(status, statusImages);
+//    }
 
     /* =========================
        GET STATUS
@@ -193,6 +198,11 @@ public class StatusServiceImpl implements StatusService {
         statusRepository.save(status);
     }
 
+    @Override
+    public Page<StatusResponse> getPublicStatusesByUser(Long userId, int page, int size) {
+        return null;
+    }
+
     /* =========================
        MAPPER
        ========================= */
@@ -211,65 +221,66 @@ public class StatusServiceImpl implements StatusService {
                 )
                 .build();
     }
-    @Override
-    @Transactional(readOnly = true)
-    public Page<StatusResponse> getPublicStatusesByUser(
-            Long userId,
-            int page,
-            int size
-    ) {
-        log.info("Fetching public statuses for user: {} with page: {}, size: {}", userId, page, size);
 
-        // VALIDATION: Kiểm tra input hợp lệ
-        if (page < 0) {
-            throw new IllegalArgumentException("Page number không thể âm");
-        }
-        if (size <= 0 || size > MAX_PAGE_SIZE) {
-            throw new IllegalArgumentException(
-                    "Size phải từ 1 đến " + MAX_PAGE_SIZE + ", nhận được: " + size
-            );
-        }
+//    @Override
+//    @Transactional
+//    public Page<StatusResponse> getPublicStatusesByUser(
+//            Long userId,
+//            int page,
+//            int size
+//    ) {
+//        log.info("Fetching public statuses for user: {} with page: {}, size: {}", userId, page, size);
+//
+//        // VALIDATION: Kiểm tra input hợp lệ
+//        if (page < 0) {
+//            throw new IllegalArgumentException("Page number không thể âm");
+//        }
+//        if (size <= 0 || size > MAX_PAGE_SIZE) {
+//            throw new IllegalArgumentException(
+//                    "Size phải từ 1 đến " + MAX_PAGE_SIZE + ", nhận được: " + size
+//            );
+//        }
+//
+//        //  CHECK: User có tồn tại không?
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> {
+//                    log.warn("User not found with id: {}", userId);
+//                    return new EntityNotFoundException("Người dùng không tồn tại với id: " + userId);
+//                });
+//
+//        //  FETCH: Lấy dữ liệu từ DB với pagination
+//        Pageable pageable = PageRequest.of(page, size);
+//
+//        Page<Status> statusPage = statusRepository.findPublicStatusesByUser(
+//                userId,
+//                Status.Visibility.PUBLIC,
+//                pageable  // Không cast type
+//        );
+//
+//        log.info("Found {} public statuses for user: {}", statusPage.getTotalElements(), userId);
+//
+//        // MAPPING: Chuyển từ Status entity sang StatusResponse DTO
+//        return statusPage.map(status -> mapToResponse(status));
+//    }
 
-        //  CHECK: User có tồn tại không?
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> {
-                    log.warn("User not found with id: {}", userId);
-                    return new EntityNotFoundException("Người dùng không tồn tại với id: " + userId);
-                });
 
-        //  FETCH: Lấy dữ liệu từ DB với pagination
-        Pageable pageable = PageRequest.of(page, size);
+    // mapper
 
-        Page<Status> statusPage = statusRepository.findPublicStatusesByUser(
-                userId,
-                Status.Visibility.PUBLIC,
-                pageable  // Không cast type
-        );
-
-        log.info("Found {} public statuses for user: {}", statusPage.getTotalElements(), userId);
-
-        // MAPPING: Chuyển từ Status entity sang StatusResponse DTO
-        return statusPage.map(status -> mapToResponse(status));
-    }
-
-    /**
-     * Helper method: Map Status entity to StatusResponse DTO
-     * Đã tối ưu: Load images chỉ 1 lần
-     */
-    private StatusResponse mapToResponse(Status status) {
-        List<String> imageUrls = statusImageRepository
-                .findByStatusIdOrderBySortOrderAsc(status.getId())
-                .stream()
-                .map(StatusImage::getUrl)
-                .toList();
-
+    private StatusResponse mapStatusResponse(Status status, List<StatusImage> images, Integer totalComments, Integer totalLikes) {
         return StatusResponse.builder()
                 .id(status.getId())
-                .username(status.getUser().getUsername())
                 .content(status.getContent())
-                .visibility(String.valueOf(status.getVisibility()))
+                .visibility(status.getVisibility().name())
+                .isActive(status.isActive())
                 .createdAt(status.getCreatedAt())
-                .imageUrls(imageUrls)
+                .updatedAt(status.getUpdatedAt())
+                .likesCount(totalLikes)
+                .commentsCount(totalComments)
+                .imageUrls(images.stream().map(this::mapToImageUrl).toList())
                 .build();
+    }
+
+    private String mapToImageUrl(StatusImage image) {
+        return image.getUrl();
     }
 }

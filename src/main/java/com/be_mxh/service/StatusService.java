@@ -15,12 +15,7 @@ public interface StatusService {
     /**
      * Tạo status mới (có thể kèm nhiều ảnh)
      */
-    Status createStatus(
-            String content,
-            String visibility,
-            List<MultipartFile> images,
-            Long userId
-    );
+    void createStatus(String content, String visibility, List<MultipartFile> images);
 
     /**
      * Lấy danh sách status cho news feed
@@ -49,6 +44,7 @@ public interface StatusService {
 
     @Transactional
     void deleteStatus(Long statusId, UserPrincipal currentUser);
+
     Page<StatusResponse> getPublicStatusesByUser(
             Long userId,
             int page,
