@@ -15,6 +15,9 @@ import com.be_mxh.service.StatusService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -206,6 +209,67 @@ public class StatusServiceImpl implements StatusService {
                                 .map(StatusImage::getUrl)
                                 .toList()
                 )
+                .build();
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public Page<StatusResponse> getPublicStatusesByUser(
+            Long userId,
+            int page,
+            int size
+    ) {
+        log.info("Fetching public statuses for user: {} with page: {}, size: {}", userId, page, size);
+
+        // VALIDATION: Kiểm tra input hợp lệ
+        if (page < 0) {
+            throw new IllegalArgumentException("Page number không thể âm");
+        }
+        if (size <= 0 || size > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException(
+                    "Size phải từ 1 đến " + MAX_PAGE_SIZE + ", nhận được: " + size
+            );
+        }
+
+        //  CHECK: User có tồn tại không?
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.warn("User not found with id: {}", userId);
+                    return new EntityNotFoundException("Người dùng không tồn tại với id: " + userId);
+                });
+
+        //  FETCH: Lấy dữ liệu từ DB với pagination
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Status> statusPage = statusRepository.findPublicStatusesByUser(
+                userId,
+                Status.Visibility.PUBLIC,
+                pageable  // Không cast type
+        );
+
+        log.info("Found {} public statuses for user: {}", statusPage.getTotalElements(), userId);
+
+        // MAPPING: Chuyển từ Status entity sang StatusResponse DTO
+        return statusPage.map(status -> mapToResponse(status));
+    }
+
+    /**
+     * Helper method: Map Status entity to StatusResponse DTO
+     * Đã tối ưu: Load images chỉ 1 lần
+     */
+    private StatusResponse mapToResponse(Status status) {
+        List<String> imageUrls = statusImageRepository
+                .findByStatusIdOrderBySortOrderAsc(status.getId())
+                .stream()
+                .map(StatusImage::getUrl)
+                .toList();
+
+        return StatusResponse.builder()
+                .id(status.getId())
+                .username(status.getUser().getUsername())
+                .content(status.getContent())
+                .visibility(String.valueOf(status.getVisibility()))
+                .createdAt(status.getCreatedAt())
+                .imageUrls(imageUrls)
                 .build();
     }
 }
