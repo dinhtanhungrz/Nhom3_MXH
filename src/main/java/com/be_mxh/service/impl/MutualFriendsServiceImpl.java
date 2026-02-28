@@ -1,5 +1,6 @@
 package com.be_mxh.service.impl;
 
+import com.be_mxh.config.security.SecurityUtils;
 import com.be_mxh.dto.user.MutualFriends;
 import com.be_mxh.entity.User;
 import com.be_mxh.repository.MutualFriendsRepository;
@@ -13,21 +14,20 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class MutualFriendsServiceImpl implements MutualFriendsService {
-
     private final MutualFriendsRepository mutualFriendsRepository;
-    private final AuthService authService;
+    private final SecurityUtils securityUtils;
 
     @Override
     public Page<MutualFriends> getMutualFriends(Long targetUserId, Pageable pageable) {
 
-        Long currentUserId = authService.getCurrentUserId();
+        Long currentUserId = securityUtils.getCurrentUserId();
 
         return mutualFriendsRepository
                 .findMutualFriends(currentUserId, targetUserId, pageable)
                 .map(this::mapToDto);
     }
 
-    private MutualFriends mapToDto(User user){
+    private MutualFriends mapToDto(User user) {
         MutualFriends dto = new MutualFriends();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());

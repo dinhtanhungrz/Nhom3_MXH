@@ -23,13 +23,17 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
     Optional<Friendship> findRelationship(@Param("u1") Long user1, @Param("u2") Long user2);
 
     @Query("""
-SELECT CASE
-    WHEN f.requester.id = :userId THEN f.addressee
-    ELSE f.requester
-END
-FROM Friendship f
-WHERE (f.requester.id = :userId OR f.addressee.id = :userId)
-AND f.status = 'ACCEPTED'
-""")
+                SELECT u
+                FROM User u
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM Friendship f
+                    WHERE f.status = 'ACCEPTED'
+                      AND (
+                            (f.requester.id = :userId AND f.addressee = u)
+                         OR (f.addressee.id = :userId AND f.requester = u)
+                      )
+                )
+            """)
     Page<User> findFriends(@Param("userId") Long userId, Pageable pageable);
 }
