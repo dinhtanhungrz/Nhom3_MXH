@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface LikeRepository extends JpaRepository<StatusLike, Long> {
-
+// ham dem luot like
     long countByStatusId(Long statusId);
+
 }
