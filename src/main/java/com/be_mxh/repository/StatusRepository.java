@@ -1,5 +1,6 @@
 package com.be_mxh.repository;
 
+import com.be_mxh.dto.status.StatusResponse;
 import com.be_mxh.entity.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,9 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
 //    List<Status> findByUserIdAndVisibility(Long userId, Status.Visibility visibility);
 
     int countByUserId(Long userId);
+
+    List<Status> findStatusByUserId(Long userId);
+
 //
 //    /**
 //     * ✅ FIXED: Sử dụng @Query annotation với JPQL
