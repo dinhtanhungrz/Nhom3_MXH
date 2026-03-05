@@ -5,6 +5,9 @@ import com.be_mxh.dto.status.StatusResponse;
 import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.service.StatusService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -40,11 +43,25 @@ public class StatusController {
 
         statusService.createStatus(content, visibility, images);
 
-        return ResponseEntity.status(HttpStatus.OK).body(
+        return ResponseEntity.status(HttpStatus.CREATED).body(
                 ApiResponse.<Object>builder()
-                        .code(HttpStatus.OK.value())
+                        .code(HttpStatus.CREATED.value())
                         .message("Created status!")
                         .data(null)
+                        .build()
+        );
+    }
+
+
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/profile")
+    public ResponseEntity<?> getStatusesByProfile() {
+        List<StatusResponse> statuses = statusService.getStatusesByProfile();
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<List<StatusResponse>>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Get statuses by profile successfully!")
+                        .data(statuses)
                         .build()
         );
     }

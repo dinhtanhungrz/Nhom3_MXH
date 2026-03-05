@@ -3,14 +3,13 @@ package com.be_mxh.service.impl;
 import com.be_mxh.config.security.SecurityUtils;
 import com.be_mxh.dto.image.ImageUploadResult;
 import com.be_mxh.dto.status.CreateStatusRequest;
+import com.be_mxh.dto.status.StatusImageResponse;
 import com.be_mxh.dto.status.StatusResponse;
 import com.be_mxh.entity.Status;
 import com.be_mxh.entity.StatusImage;
 import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
-import com.be_mxh.repository.StatusImageRepository;
-import com.be_mxh.repository.StatusRepository;
-import com.be_mxh.repository.UserRepository;
+import com.be_mxh.repository.*;
 import com.be_mxh.service.ImageUploadService;
 import com.be_mxh.service.StatusService;
 import jakarta.persistence.EntityNotFoundException;
@@ -18,9 +17,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -31,8 +32,9 @@ public class StatusServiceImpl implements StatusService {
     private final StatusRepository statusRepository;
     private final StatusImageRepository statusImageRepository;
     private final ImageUploadService imageUploadService;
-    private final UserRepository userRepository;
     private final SecurityUtils securityUtils;
+    private final LikeRepository likeRepository;
+    private final CommentRepository commentRepository;
 
     /* =========================
        CREATE STATUS
@@ -79,6 +81,21 @@ public class StatusServiceImpl implements StatusService {
     }
 
     @Override
+    public List<StatusResponse> getStatusesByProfile() {
+        Long userId = securityUtils.getCurrentUserId();
+        List<Status> statuses = statusRepository.findStatusByUserId(userId);
+
+        List<StatusResponse> responses = new ArrayList<>();
+        for (Status status : statuses) {
+            Long likeCount = likeRepository.countByStatusId(status.getId());
+            Long commentCount = commentRepository.countByStatusId(status.getId());
+            List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+            responses.add(mapStatusResponse(status, images, commentCount, likeCount));
+        }
+        return responses;
+    }
+
+    @Override
     public List<StatusResponse> getFeedStatuses(Long userId) {
         return List.of();
     }
@@ -93,10 +110,6 @@ public class StatusServiceImpl implements StatusService {
 
     }
 
-    @Override
-    public StatusResponse createStatus(CreateStatusRequest request, List<MultipartFile> images, UserPrincipal currentUser) {
-        return null;
-    }
 //
 //    @Transactional
 //    @Override
@@ -216,7 +229,11 @@ public class StatusServiceImpl implements StatusService {
                 .createdAt(status.getCreatedAt())
                 .imageUrls(
                         images.stream()
-                                .map(StatusImage::getUrl)
+                                .map(img -> StatusImageResponse.builder()
+                                        .id(img.getId())
+                                        .url(img.getUrl())
+                                        .sortOrder(img.getSortOrder())
+                                        .build())
                                 .toList()
                 )
                 .build();
@@ -266,7 +283,7 @@ public class StatusServiceImpl implements StatusService {
 
     // mapper
 
-    private StatusResponse mapStatusResponse(Status status, List<StatusImage> images, Integer totalComments, Integer totalLikes) {
+    private StatusResponse mapStatusResponse(Status status, List<StatusImage> images, Long totalComments, Long totalLikes) {
         return StatusResponse.builder()
                 .id(status.getId())
                 .content(status.getContent())
@@ -280,7 +297,11 @@ public class StatusServiceImpl implements StatusService {
                 .build();
     }
 
-    private String mapToImageUrl(StatusImage image) {
-        return image.getUrl();
+    private StatusImageResponse mapToImageUrl(StatusImage img) {
+        return StatusImageResponse.builder()
+                .id(img.getId())
+                .url(img.getUrl())
+                .sortOrder(img.getSortOrder())
+                .build();
     }
 }

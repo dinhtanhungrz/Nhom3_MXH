@@ -1,8 +1,10 @@
 package com.be_mxh.dto.status;
 
+import com.be_mxh.entity.Status;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -18,8 +20,32 @@ public class StatusResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    private Integer likesCount;
-    private Integer commentsCount;
+    private Long likesCount;
+    private Long commentsCount;
 
-    private List<String> imageUrls;
+    private List<StatusImageResponse> imageUrls = new ArrayList<>();
+
+    public StatusResponse(
+            Long id,
+            String content,
+            Status.Visibility visibility,
+            Boolean active,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            Long likesCount,
+            Long commentsCount
+    ) {
+        this.id = id;
+        this.content = content;
+        this.visibility = visibility.name();
+        this.isActive = active;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.likesCount = likesCount;
+        this.commentsCount = commentsCount;
+    }
+
+    public void setImages(List<StatusImageResponse> images) {
+        this.imageUrls = images;
+    }
 }

@@ -6,20 +6,17 @@ import com.be_mxh.entity.Status;
 import com.be_mxh.entity.UserPrincipal;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface StatusService {
 
-    /**
-     * Tạo status mới (có thể kèm nhiều ảnh)
-     */
     void createStatus(String content, String visibility, List<MultipartFile> images);
 
-    /**
-     * Lấy danh sách status cho news feed
-     */
+    List<StatusResponse> getStatusesByProfile();
+
     List<StatusResponse> getFeedStatuses(Long userId);
 
     /**
@@ -31,13 +28,6 @@ public interface StatusService {
      * Xoá status (chỉ chủ status được xoá)
      */
     void deleteStatus(Long id, Long userId);
-
-    @Transactional
-    StatusResponse createStatus(
-            CreateStatusRequest request,
-            List<MultipartFile> images,
-            UserPrincipal currentUser
-    );
 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     StatusResponse getStatusById(Long statusId, UserPrincipal currentUser);
