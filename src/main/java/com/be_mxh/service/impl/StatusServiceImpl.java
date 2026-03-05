@@ -3,14 +3,12 @@ package com.be_mxh.service.impl;
 import com.be_mxh.dto.image.ImageUploadResult;
 import com.be_mxh.dto.status.CreateStatusRequest;
 import com.be_mxh.dto.status.StatusResponse;
+import com.be_mxh.dto.status.StatusResponseDisplay;
 import com.be_mxh.entity.Status;
 import com.be_mxh.entity.StatusImage;
 import com.be_mxh.entity.User;
 import com.be_mxh.entity.UserPrincipal;
-import com.be_mxh.repository.FriendshipRepository;
-import com.be_mxh.repository.StatusImageRepository;
-import com.be_mxh.repository.StatusRepository;
-import com.be_mxh.repository.UserRepository;
+import com.be_mxh.repository.*;
 import org.springframework.security.access.AccessDeniedException;
 import com.be_mxh.service.ImageUploadService;
 import com.be_mxh.service.StatusService;
@@ -32,6 +30,8 @@ public class StatusServiceImpl implements StatusService {
     private final ImageUploadService imageUploadService;
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
+    private final LikeRepository likeRepository;
+    private final CommentRepository commentRepository;
 
     /*
      * =========================
@@ -80,8 +80,16 @@ public class StatusServiceImpl implements StatusService {
     }
 
     @Override
-    public List<Status> getFeedStatuses(Long userId) {
-        return List.of();
+    public List<StatusResponseDisplay> getFeedStatuses(Long userId) {
+        List<Status> results = statusRepository.getNewsfeedStatuses(userId);
+        List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
+        for(Status status : results){
+            List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+            Integer totalLikes = likeRepository.countByStatusId(status.getId());
+            Integer totalComments = commentRepository.countByStatusId(status.getId());
+            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes));
+        }
+        return statusResponseDisplays;
     }
 
     @Override
@@ -240,18 +248,82 @@ public class StatusServiceImpl implements StatusService {
     }
 
     @Override
-    public List<Status> getVisibleStatuses(Long ownerId, Long viewerId) {
-        return statusRepository.findVisibleStatuses(ownerId, viewerId);
+    public List<StatusResponseDisplay> getVisibleStatuses(Long ownerId, Long viewerId) {
+        List<Status> results = statusRepository.findVisibleStatuses(ownerId, viewerId);
+        List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
+        for(Status status : results){
+            List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+            Integer totalLikes = likeRepository.countByStatusId(status.getId());
+            Integer totalComments = commentRepository.countByStatusId(status.getId());
+            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes));
+        }
+        return statusResponseDisplays;
     }
 
     @Override
-    public List<Status> searchUserStatuses(Long ownerId, Long viewerId, String keyword) {
-        return statusRepository.searchVisibleStatuses(ownerId, viewerId, keyword);
+    public List<StatusResponseDisplay> searchUserStatuses(Long ownerId, Long viewerId, String keyword) {
+        List<Status> results = statusRepository.searchVisibleStatuses(ownerId, viewerId, keyword);
+        List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
+        for(Status status : results){
+            List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+            Integer totalLikes = likeRepository.countByStatusId(status.getId());
+            Integer totalComments = commentRepository.countByStatusId(status.getId());
+            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes));
+        }
+        return statusResponseDisplays;
     }
 
     @Override
-    public List<Status> findAllByContentContaining(String query) {
-        return statusRepository.findAllByContentContaining(query);
+    public List<StatusResponseDisplay> findAllByContentContaining(String query, Long viewerId) {
+        List<Status> results = statusRepository.globalSearch(viewerId, query);
+        List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
+        for(Status status : results){
+            List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+            Integer totalLikes = likeRepository.countByStatusId(status.getId());
+            Integer totalComments = commentRepository.countByStatusId(status.getId());
+            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes));
+        }
+        return statusResponseDisplays;
     }
 
+    @Transactional
+    @Override
+    public void updateVisibility(Long statusId, Status.Visibility newVisibility, Long currentUser_Id) {
+
+        // 1. Tìm status trong DB
+        Status status = statusRepository.findById(statusId)
+                .orElseThrow(() -> new EntityNotFoundException("Status không tồn tại"));
+
+        // 2. Kiểm tra xem người đang request có phải là CHỦ của status này không
+        if (!status.getUser().getId().equals(currentUser_Id)) {
+            throw new AccessDeniedException("Bạn không có quyền thay đổi quyền hiển thị của status này");
+        }
+
+        // 3. Cập nhật quyền mới và lưu lại
+        status.setVisibility(newVisibility);
+        statusRepository.save(status);
+    }
+
+    // mapper
+
+    private StatusResponseDisplay mapStatusResponseDisplay(Status status, List<StatusImage> images, Integer totalComments, Integer totalLikes) {
+        return StatusResponseDisplay.builder()
+                .id(status.getId())
+                .content(status.getContent())
+                .visibility(status.getVisibility().name())
+                .isActive(status.isActive())
+                .createdAt(status.getCreatedAt())
+                .updatedAt(status.getUpdatedAt())
+                .likesCount(totalLikes)
+                .commentsCount(totalComments)
+                .authorId(status.getUser().getId())
+                .authorName(status.getUser().getFullName())
+                .authorAvatarUrl(status.getUser().getAvatarUrl())
+                .imageUrls(images.stream().map(this::mapToImageUrl).toList())
+                .build();
+    }
+
+    private String mapToImageUrl(StatusImage image){
+        return image.getUrl();
+    }
 }

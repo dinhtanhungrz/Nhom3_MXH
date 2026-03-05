@@ -10,5 +10,5 @@ import java.util.List;
 public interface CommentRepository
         extends JpaRepository<Comment, Long> {
 
-    long countByStatusId(Long statusId);
+    Integer countByStatusId(Long statusId);
 }

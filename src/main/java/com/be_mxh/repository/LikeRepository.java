@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LikeRepository extends JpaRepository<StatusLike, Long> {
 
-    long countByStatusId(Long statusId);
+    Integer countByStatusId(Long statusId);
 }

@@ -26,7 +26,32 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
 
     int countByUserId(Long userId);
 
-    List<Status> findAllByContentContaining(String query);
+    // Dùng cho: GET /api/statuses/query?query=... (toàn mạng, có lọc visibility)
+    @Query("""
+                SELECT s FROM Status s
+                WHERE s.active = true
+                AND s.user.id != :viewerId
+                AND LOWER(s.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                AND (
+                    s.visibility = 'PUBLIC'
+                    OR (
+                        s.visibility = 'FRIENDS_ONLY'
+                        AND EXISTS (
+                            SELECT f FROM Friendship f
+                            WHERE f.status = 'ACCEPTED'
+                            AND (
+                                (f.requester.id = :viewerId AND f.addressee.id = s.user.id)
+                                OR
+                                (f.requester.id = s.user.id AND f.addressee.id = :viewerId)
+                            )
+                        )
+                    )
+                )
+                ORDER BY s.createdAt DESC
+            """)
+    List<Status> globalSearch(
+            @Param("viewerId") Long viewerId,
+            @Param("keyword") String keyword);
 
     @Query("""
                 SELECT s FROM Status s
@@ -81,4 +106,25 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
     List<Status> findVisibleStatuses(
             @Param("ownerId") Long ownerId,
             @Param("viewerId") Long viewerId);
+
+    @Query("""
+                SELECT s FROM Status s
+                WHERE s.active = true
+                AND (
+                    (s.user.id = :viewerId)
+                    OR (s.visibility = 'PUBLIC')
+                    OR (
+                        s.visibility = 'FRIENDS_ONLY'
+                        AND s.user.id IN (
+                            SELECT f.addressee.id FROM Friendship f WHERE f.requester.id = :viewerId AND f.status = 'ACCEPTED'
+                            UNION
+                            SELECT f.requester.id FROM Friendship f WHERE f.addressee.id = :viewerId AND f.status = 'ACCEPTED'
+                        )
+                    )
+                )
+                ORDER BY s.createdAt DESC
+            """)
+    List<Status> getNewsfeedStatuses(@Param("viewerId") Long viewerId);
 }
+
+

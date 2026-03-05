@@ -10,10 +10,20 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class StatusResponse {
+public class StatusResponseDisplay {
     private Long id;
     private String content;
     private String visibility;
+    private boolean isActive;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    private Integer likesCount;
+    private Integer commentsCount;
+
+    private Long authorId;
+    private String authorName;
+    private String authorAvatarUrl;
+
     private List<String> imageUrls;
 }
