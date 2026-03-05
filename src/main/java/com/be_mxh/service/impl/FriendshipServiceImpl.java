@@ -1,6 +1,7 @@
 package com.be_mxh.service.impl;
 
 import com.be_mxh.config.security.SecurityUtils;
+import com.be_mxh.dto.user.FriendshipsResponse;
 import com.be_mxh.entity.Friendship;
 import com.be_mxh.entity.Notification;
 import com.be_mxh.entity.User;
@@ -12,6 +13,8 @@ import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.FriendshipService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -131,5 +134,19 @@ public class FriendshipServiceImpl implements FriendshipService {
         }
 
         throw new BadRequestException("The two users are not friends");
+    }
+
+    public Page<FriendshipsResponse> getFriends(Long userId, Pageable pageable) {
+        return friendshipRepository.findFriends(userId, pageable)
+                .map(this::mapToDto);
+    }
+
+    private FriendshipsResponse mapToDto(User user){
+        FriendshipsResponse dto = new FriendshipsResponse();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setAvatarUrl(user.getAvatarUrl());
+        dto.setFullName(user.getFullName());
+        return dto;
     }
 }

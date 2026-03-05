@@ -1,0 +1,2 @@
+- Tai khoan test:  admin/123456
+- nguyenvana/123456
