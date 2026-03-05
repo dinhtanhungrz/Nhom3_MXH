@@ -1,0 +1,149 @@
+### File: delete_comment_api_test.http
+### Dùng trong: IntelliJ IDEA (HTTP Client) hoặc VS Code (REST Client extension)
+### Mục đích: Test toàn bộ flow xóa comment qua API thực tế
+###
+### ⚠️  Thay đổi:
+###   @baseUrl   = host:port của backend đang chạy
+###   @username  = tài khoản test chính (owner)
+###   @password  = mật khẩu tài khoản test chính
+###   @username2 = tài khoản thứ 2 (người lạ)
+###   @password2 = mật khẩu tài khoản thứ 2
+
+@baseUrl = http://localhost:8080
+@username = alice
+@password = 123456
+@username2 = bob
+@password2 = 123456
+
+# ===========================================================================
+# BƯỚC 1 – Đăng nhập tài khoản chính (Alice) → lấy token
+# ===========================================================================
+# @name login_alice
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### LOG mong đợi (200 OK):
+### {
+###   "code": 200,
+###   "token": "eyJhbGci...",
+###   "refreshToken": "..."
+### }
+
+# ===========================================================================
+# BƯỚC 2 – Tạo bài viết (status) để đăng comment vào
+# ===========================================================================
+# @name create_status
+POST {{baseUrl}}/api/statuses
+Content-Type: multipart/form-data; boundary=----FormBoundary
+Authorization: Bearer {{login_alice.response.body.$.token}}
+
+------FormBoundary
+Content-Disposition: form-data; name="content"
+
+Bài viết test – sẽ xóa comment sau
+
+------FormBoundary--
+
+### LOG mong đợi (200 OK):
+### { "id": 1, "content": "Bài viết test...", ... }
+
+# ===========================================================================
+# BƯỚC 3 – Alice đăng comment vào status vừa tạo
+# ===========================================================================
+# @name post_comment
+POST {{baseUrl}}/api/comments/{{create_status.response.body.$.id}}
+Authorization: Bearer {{login_alice.response.body.$.token}}
+Content-Type: application/x-www-form-urlencoded
+
+content=Đây là comment thử nghiệm của Alice
+
+### LOG mong đợi (201 Created):
+### {
+###   "code": 201,
+###   "message": "Đăng comment thành công"
+### }
+
+# ===========================================================================
+# BƯỚC 4 – Alice tự xóa comment của mình → Phải thành công (200)
+# ===========================================================================
+# ✅ Kết quả mong đợi: 200 OK
+# Thay @commentId bằng ID thực từ DB (hoặc dùng response BƯỚC 3 nếu API trả về id)
+@commentId = 1
+
+DELETE {{baseUrl}}/api/comments/{{commentId}}
+Authorization: Bearer {{login_alice.response.body.$.token}}
+
+### LOG mong đợi (200 OK):
+### {
+###   "code": 200,
+###   "message": "Xóa comment thành công"
+### }
+
+### LOG backend mong đợi:
+### INFO [CommentController] deleteComment – commentId=1, requestBy userId=1
+### INFO [CommentService] deleteComment – commentId=1, requestBy userId=1
+### INFO [CommentService] ✅ Comment 1 đã xóa mềm thành công (userId=1)
+### INFO [CommentController] ✅ Comment 1 xóa thành công bởi userId=1
+
+# ===========================================================================
+# BƯỚC 5 – Alice xóa lại comment đã xóa → 404 Not Found
+# ===========================================================================
+# ❌ Kết quả mong đợi: 404 Not Found (comment đã bị soft-delete)
+DELETE {{baseUrl}}/api/comments/{{commentId}}
+Authorization: Bearer {{login_alice.response.body.$.token}}
+
+### LOG mong đợi (404 Not Found):
+### {
+###   "code": 404,
+###   "message": "Comment không tồn tại hoặc đã bị xóa"
+### }
+
+### LOG backend mong đợi:
+### WARN [CommentService] Comment không tồn tại hoặc đã bị xóa – commentId=1
+
+# ===========================================================================
+# BƯỚC 6 – Đăng nhập tài khoản thứ 2 (Bob)
+# ===========================================================================
+# @name login_bob
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username2}}",
+  "password": "{{password2}}"
+}
+
+# ===========================================================================
+# BƯỚC 7 – Alice đăng comment mới (để test bước tiếp theo)
+# ===========================================================================
+# @name post_comment2
+POST {{baseUrl}}/api/comments/{{create_status.response.body.$.id}}
+Authorization: Bearer {{login_alice.response.body.$.token}}
+Content-Type: application/x-www-form-urlencoded
+
+content=Comment mới của Alice để test quyền
+
+# ===========================================================================
+# BƯỚC 8 – Bob cố xóa comment của Alice → 403 Forbidden
+# ===========================================================================
+# 🚫 Kết quả mong đợi: 403 Forbidden (không phải chủ comment)
+@commentId2 = 2
+
+DELETE {{baseUrl}}/api/comments/{{commentId2}}
+Authorization: Bearer {{login_bob.response.body.$.token}}
+
+### LOG mong đợi (403 Forbidden):
+### {
+###   "code": 403,
+###   "message": "Forbidden",
+###   "data": "Access Denied. You don't have permission to access this resource."
+### }
+
+### LOG backend mong đợi:
+### INFO  [CommentController] deleteComment – commentId=2, requestBy userId=2 (Bob)
+### WARN  [CommentService] Từ chối xóa – comment thuộc userId=1, request từ userId=2
