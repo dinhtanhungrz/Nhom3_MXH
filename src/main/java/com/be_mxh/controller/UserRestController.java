@@ -156,6 +156,32 @@ public class UserRestController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PostMapping("/friend-request/accept/{id}") // POST
+    public ResponseEntity<?> acceptFriendRequest(@PathVariable("id") Long id) {
+        friendshipService.friendRequest(id); // friendshipService.friendRequest already handles acceptance if request exists
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Friend request accepted")
+                        .data(null)
+                        .build()
+        );
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @DeleteMapping("/friend-request/reject/{id}") // DELETE
+    public ResponseEntity<?> rejectFriendRequest(@PathVariable("id") Long id) {
+        friendshipService.cancelFriendRequest(id); // friendshipService.cancelFriendRequest handles rejection by deleting PENDING
+        return ResponseEntity.status(HttpStatus.OK).body(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Friend request rejected")
+                        .data(null)
+                        .build()
+        );
+    }
+
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // cái này để xác thực. ko them thi ko co token van vao duoc
     @GetMapping("/{id}/mutual-friends")
     public Page<MutualFriends> getMutualFriends(

@@ -1,42 +1,108 @@
 package com.be_mxh.service.impl;
 
+import com.be_mxh.dto.comment.CommentRequest;
+import com.be_mxh.dto.comment.CommentResponse;
 import com.be_mxh.entity.Comment;
+import com.be_mxh.entity.Friendship;
 import com.be_mxh.entity.Status;
 import com.be_mxh.entity.User;
+import com.be_mxh.exception.ResourceNotFoundException;
+import com.be_mxh.exception.UnauthorizedException;
 import com.be_mxh.repository.CommentRepository;
+import com.be_mxh.repository.FriendshipRepository;
 import com.be_mxh.repository.StatusRepository;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.CommentService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
     private final StatusRepository statusRepository;
     private final UserRepository userRepository;
+    private final FriendshipRepository friendshipRepository;
 
     @Override
-    public void comment(Long postId, String content, String username) {
+    @Transactional
+    public void createComment(CommentRequest request, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Status post = statusRepository.findById(postId)
-                .filter(p -> p.isActive())
-                .orElseThrow();
+        Status status = statusRepository.findById(request.getStatusId())
+                .orElseThrow(() -> new ResourceNotFoundException("Status not found"));
 
-        User user = userRepository
-                .findByUsernameOrEmail(username, username)
-                .orElseThrow();
+        // Privacy Check
+        if (!canUserComment(user, status)) {
+            throw new UnauthorizedException("You do not have permission to comment on this post");
+        }
 
-        Comment c = new Comment();
-        c.setContent(content);
-        c.setUser(user);
-        c.setStatus(post);
+        Comment comment = new Comment();
+        comment.setContent(request.getContent());
+        comment.setUser(user);
+        comment.setStatus(status);
 
-        commentRepository.save(c);
-//        post.setCommentCount(post.getCommentCount() + 1);
+        if (request.getParentId() != null) {
+            Comment parent = commentRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent comment not found"));
+            comment.setParent(parent);
+        }
+
+        commentRepository.save(comment);
+    }
+
+    private boolean canUserComment(User user, Status status) {
+        if (status.getVisibility() == Status.Visibility.PUBLIC) return true;
+        if (status.getUser().getId().equals(user.getId())) return true;
+        
+        Optional<Friendship> friendship = friendshipRepository.findRelationship(user.getId(), status.getUser().getId());
+        if (status.getVisibility() == Status.Visibility.FRIENDS_ONLY) {
+            return friendship.isPresent() && friendship.get().getStatus() == Friendship.Status.ACCEPTED;
+        }
+        
+        return false; // ONLY_ME
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getCommentsByStatus(Long statusId, Long currentUserId) {
+        return commentRepository.findAllByStatusIdOrderByCreatedAtDesc(statusId)
+                .stream()
+                .map(comment -> mapToResponse(comment, currentUserId))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void updateComment(Long commentId, String content, Long userId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+
+        if (!comment.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException("You are not the owner of this comment");
+        }
+
+        comment.setContent(content);
+        commentRepository.save(comment);
+    }
+
+    private CommentResponse mapToResponse(Comment comment, Long currentUserId) {
+        return CommentResponse.builder()
+                .id(comment.getId())
+                .content(comment.getContent())
+                .username(comment.getUser().getUsername())
+                .userAvatar(comment.getUser().getAvatarUrl())
+                .createdAt(comment.getCreatedAt())
+                .isOwner(currentUserId != null && comment.getUser().getId().equals(currentUserId))
+                .likeCount(0)
+                .isLiked(false)
+                .build();
     }
 }
