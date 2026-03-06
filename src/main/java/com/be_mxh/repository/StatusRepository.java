@@ -38,23 +38,16 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
 
     List<Status> findStatusByUserId(Long userId);
 
-//
-//    /**
-//     * ✅ FIXED: Sử dụng @Query annotation với JPQL
-//     * - Import đúng: org.springframework.data.domain.Pageable
-//     * - Không cast type
-//     * - Method name rõ ràng
-//     */
-//    @Query("""
-//        SELECT s FROM Status s
-//        WHERE s.user.id = :userId
-//          AND s.visibility = :visibility
-//          AND s.active = true
-//        ORDER BY s.createdAt DESC
-//    """)
-//    Page<Status> findPublicStatusesByUser(
-//            @Param("userId") Long userId,
-//            @Param("visibility") Status.Visibility visibility,
-//            Pageable pageable
-//    );
+    @Query("""
+        SELECT s FROM Status s
+        WHERE s.user.id = :userId
+          AND s.visibility = :visibility
+          AND s.active = true
+        ORDER BY s.createdAt DESC
+    """)
+    Page<Status> findPublicStatusesByUser(
+            @Param("userId") Long userId,
+            @Param("visibility") Status.Visibility visibility,
+            Pageable pageable
+    );
 }

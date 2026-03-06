@@ -2,7 +2,6 @@ package com.be_mxh.service.impl;
 
 import com.be_mxh.config.security.SecurityUtils;
 import com.be_mxh.dto.image.ImageUploadResult;
-import com.be_mxh.dto.status.CreateStatusRequest;
 import com.be_mxh.dto.status.StatusImageResponse;
 import com.be_mxh.dto.status.StatusResponse;
 import com.be_mxh.entity.Status;
@@ -17,6 +16,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -213,7 +213,19 @@ public class StatusServiceImpl implements StatusService {
 
     @Override
     public Page<StatusResponse> getPublicStatusesByUser(Long userId, int page, int size) {
-        return null;
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Status> statusPage = statusRepository.findPublicStatusesByUser(
+                userId,
+                Status.Visibility.PUBLIC,
+                pageable
+        );
+
+        return statusPage.map(status -> {
+            List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+            Long likeCount = likeRepository.countByStatusId(status.getId());
+            Long commentCount = commentRepository.countByStatusId(status.getId());
+            return mapStatusResponse(status, images, commentCount, likeCount);
+        });
     }
 
     /* =========================
