@@ -2,16 +2,10 @@ package com.be_mxh.service.impl;
 
 import com.be_mxh.dto.comment.CommentRequest;
 import com.be_mxh.dto.comment.CommentResponse;
-import com.be_mxh.entity.Comment;
-import com.be_mxh.entity.Friendship;
-import com.be_mxh.entity.Status;
-import com.be_mxh.entity.User;
+import com.be_mxh.entity.*;
 import com.be_mxh.exception.ResourceNotFoundException;
 import com.be_mxh.exception.UnauthorizedException;
-import com.be_mxh.repository.CommentRepository;
-import com.be_mxh.repository.FriendshipRepository;
-import com.be_mxh.repository.StatusRepository;
-import com.be_mxh.repository.UserRepository;
+import com.be_mxh.repository.*;
 import com.be_mxh.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +23,8 @@ public class CommentServiceImpl implements CommentService {
     private final StatusRepository statusRepository;
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
+    private final CommentLikeRepository commentLikeRepository;
+
 
     @Override
     @Transactional
@@ -105,4 +101,31 @@ public class CommentServiceImpl implements CommentService {
                 .isLiked(false)
                 .build();
     }
+
+    @Override
+    public void likeComment(Long commentId, Long userId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Kiểm tra nếu chưa like thì thêm mới
+        if (!commentLikeRepository.findByCommentIdAndUserId(commentId, userId).isPresent()) {
+            CommentLike commentLike = new CommentLike();
+            commentLike.setComment(comment);
+            commentLike.setUser(user);
+            commentLikeRepository.save(commentLike);
+        }
+    }
+
+    @Override
+    public void unlikeComment(Long commentId, Long userId) {
+        commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+    }
+
+    @Override
+    public long getCommentLikeCount(Long commentId) {
+        return commentLikeRepository.countByCommentId(commentId);
+    }
+
 }

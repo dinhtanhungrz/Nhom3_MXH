@@ -74,4 +74,22 @@ public class CommentRestController {
                         .build()
         );
     }
+    @PostMapping("/{commentId}/like")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<String>> likeComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        commentService.likeComment(commentId, userPrincipal.getId());
+        return ResponseEntity.ok(ApiResponse.success("Comment liked successfully"));
+    }
+
+    @DeleteMapping("/{commentId}/unlike")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<String>> unlikeComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        commentService.unlikeComment(commentId, userPrincipal.getId());
+        return ResponseEntity.ok(ApiResponse.success("Comment unliked successfully"));
+    }
+
 }

@@ -11,4 +11,9 @@ public interface CommentService {
   List<CommentResponse> getCommentsByStatus(Long statusId, Long currentUserId);
 
   void updateComment(Long commentId, String content, Long userId);
+
+  void likeComment(Long commentId, Long userId);
+  void unlikeComment(Long commentId, Long userId);
+  long getCommentLikeCount(Long commentId);
+
 }
