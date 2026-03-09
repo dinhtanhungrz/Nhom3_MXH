@@ -171,5 +171,26 @@ public class UserRestController {
             @PathVariable Long id,
             @PageableDefault(page = 0, size = 10) Pageable pageable
     ){
-        return friendshipService.getFriends(id, pageable);    }
+        return friendshipService.getFriends(id, pageable);
+    }
+    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @GetMapping("/friends")
+    public ResponseEntity<ApiResponse<Page<FriendshipsResponse>>> getMyFriends(
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        ProfileResponse me = userService.getProfile();
+
+        Page<FriendshipsResponse> friends =
+                friendshipService.getFriends(me.getId(), pageable);
+
+        return ResponseEntity.ok(
+                ApiResponse.<Page<FriendshipsResponse>>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Get my friends successfully")
+                        .data(friends)
+                        .build()
+        );
+    }
+
+
 }
