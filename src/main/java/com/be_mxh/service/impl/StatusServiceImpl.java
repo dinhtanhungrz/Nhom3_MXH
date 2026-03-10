@@ -80,14 +80,14 @@ public class StatusServiceImpl implements StatusService {
     }
 
     @Override
-    public List<StatusResponseDisplay> getFeedStatuses(Long userId) {
-        List<Status> results = statusRepository.getNewsfeedStatuses(userId);
+    public List<StatusResponseDisplay> getFeedStatuses(Long viewerId) {
+        List<Status> results = statusRepository.getNewsfeedStatuses(viewerId);
         List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
         for(Status status : results){
             List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
             Integer totalLikes = likeRepository.countByStatusId(status.getId());
             Integer totalComments = commentRepository.countByStatusId(status.getId());
-            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes));
+            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
         }
         return statusResponseDisplays;
     }
@@ -255,7 +255,7 @@ public class StatusServiceImpl implements StatusService {
             List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
             Integer totalLikes = likeRepository.countByStatusId(status.getId());
             Integer totalComments = commentRepository.countByStatusId(status.getId());
-            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes));
+            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
         }
         return statusResponseDisplays;
     }
@@ -268,7 +268,7 @@ public class StatusServiceImpl implements StatusService {
             List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
             Integer totalLikes = likeRepository.countByStatusId(status.getId());
             Integer totalComments = commentRepository.countByStatusId(status.getId());
-            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes));
+            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
         }
         return statusResponseDisplays;
     }
@@ -281,7 +281,7 @@ public class StatusServiceImpl implements StatusService {
             List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
             Integer totalLikes = likeRepository.countByStatusId(status.getId());
             Integer totalComments = commentRepository.countByStatusId(status.getId());
-            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes));
+            statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
         }
         return statusResponseDisplays;
     }
@@ -306,7 +306,10 @@ public class StatusServiceImpl implements StatusService {
 
     // mapper
 
-    private StatusResponseDisplay mapStatusResponseDisplay(Status status, List<StatusImage> images, Integer totalComments, Integer totalLikes) {
+    private StatusResponseDisplay mapStatusResponseDisplay(Status status, List<StatusImage> images, Integer totalComments, Integer totalLikes, Long viewerId) {
+        boolean canComment = viewerId.equals(status.getUser().getId()) ||
+                friendshipRepository.existsAcceptedFriendship(status.getUser().getId(), viewerId);
+
         return StatusResponseDisplay.builder()
                 .id(status.getId())
                 .content(status.getContent())
@@ -315,7 +318,8 @@ public class StatusServiceImpl implements StatusService {
                 .createdAt(status.getCreatedAt())
                 .updatedAt(status.getUpdatedAt())
                 .likesCount(totalLikes)
-                .commentsCount(totalComments)
+                .commentCount(totalComments)
+                .canComment(canComment)
                 .authorId(status.getUser().getId())
                 .authorName(status.getUser().getFullName())
                 .authorAvatarUrl(status.getUser().getAvatarUrl())

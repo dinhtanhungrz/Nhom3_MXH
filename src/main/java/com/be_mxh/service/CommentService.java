@@ -1,5 +1,8 @@
 package com.be_mxh.service;
 
+import java.util.List;
+import com.be_mxh.dto.comment.CommentResponseDisplay;
+
 public interface CommentService {
 
     /**
@@ -21,4 +24,9 @@ public interface CommentService {
      * @throws AccessDeniedException     nếu không phải chủ comment
      */
     void deleteComment(Long commentId, Long currentUserId);
+
+    /**
+     * Lấy danh sách comment của bài viết
+     */
+    List<CommentResponseDisplay> getCommentsByPostId(Long postId, Long currentUserId);
 }

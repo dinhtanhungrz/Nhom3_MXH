@@ -18,4 +18,6 @@ public interface CommentRepository
      * Dùng trong service xóa comment để đảm bảo không tìm thấy comment đã xóa.
      */
     Optional<Comment> findByIdAndDeletedFalse(Long id);
+
+    List<Comment> findByStatusIdAndDeletedFalseOrderByCreatedAtAsc(Long statusId);
 }

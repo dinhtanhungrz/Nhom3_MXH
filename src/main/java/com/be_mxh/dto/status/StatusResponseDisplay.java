@@ -19,7 +19,9 @@ public class StatusResponseDisplay {
     private LocalDateTime updatedAt;
 
     private Integer likesCount;
-    private Integer commentsCount;
+    private Integer commentCount;
+
+    private boolean canComment;
 
     private Long authorId;
     private String authorName;

@@ -3,14 +3,18 @@ package com.be_mxh.service.impl;
 import com.be_mxh.entity.Comment;
 import com.be_mxh.entity.Status;
 import com.be_mxh.entity.User;
+import com.be_mxh.dto.comment.CommentResponseDisplay;
 import com.be_mxh.exception.ResourceNotFoundException;
 import com.be_mxh.repository.CommentRepository;
+import com.be_mxh.repository.FriendshipRepository;
 import com.be_mxh.repository.StatusRepository;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.CommentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +27,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final StatusRepository statusRepository;
     private final UserRepository userRepository;
+    private final FriendshipRepository friendshipRepository;
 
     // =====================================================================
     // ĐĂNG COMMENT
@@ -49,6 +54,15 @@ public class CommentServiceImpl implements CommentService {
                     log.warn("[CommentService] Không tìm thấy user – username={}", username);
                     return new ResourceNotFoundException("Người dùng không tồn tại");
                 });
+
+        // Kiểm tra quyền comment: phải là chủ bài viết hoặc bạn bè
+        if (!post.getUser().getId().equals(user.getId())) {
+            boolean isFriend = friendshipRepository.existsAcceptedFriendship(post.getUser().getId(), user.getId());
+            if (!isFriend) {
+                log.warn("[CommentService] User {} không có quyền comment bài viết của {}", user.getId(), post.getUser().getId());
+                throw new AccessDeniedException("Bạn không có quyền bình luận bài viết này");
+            }
+        }
 
         Comment c = new Comment();
         c.setContent(content);
@@ -100,6 +114,20 @@ public class CommentServiceImpl implements CommentService {
         commentRepository.save(comment);
         log.info("[CommentService] ✅ Comment {} đã xóa mềm thành công (userId={})",
                 commentId, currentUserId);
+    }
+
+    @Override
+    public List<CommentResponseDisplay> getCommentsByPostId(Long postId, Long currentUserId) {
+        List<Comment> comments = commentRepository.findByStatusIdAndDeletedFalseOrderByCreatedAtAsc(postId);
+        return comments.stream().map(c -> CommentResponseDisplay.builder()
+                .id(c.getId())
+                .content(c.getContent())
+                .authorId(c.getUser().getId())
+                .authorName(c.getUser().getFullName())
+                .authorAvatarUrl(c.getUser().getAvatarUrl())
+                .createdAt(c.getCreatedAt())
+                .canDelete(c.getUser().getId().equals(currentUserId))
+                .build()).collect(Collectors.toList());
     }
 }
 

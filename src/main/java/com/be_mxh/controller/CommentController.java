@@ -1,8 +1,10 @@
 package com.be_mxh.controller;
 
 import com.be_mxh.dto.ApiResponse;
+import com.be_mxh.dto.comment.CommentResponseDisplay;
 import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.service.CommentService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -105,6 +107,22 @@ public class CommentController {
                 ApiResponse.<Void>builder()
                         .code(HttpStatus.OK.value())
                         .message("Xóa comment thành công")
+                        .build()
+        );
+    }
+
+    @GetMapping("/status/{postId}")
+    public ResponseEntity<?> getComments(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        List<CommentResponseDisplay> comments = commentService.getCommentsByPostId(postId, userPrincipal.getId());
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<CommentResponseDisplay>>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Lấy comments thành công")
+                        .data(comments)
                         .build()
         );
     }
