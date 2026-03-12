@@ -30,4 +30,9 @@ public class StatusLike {
     private User user;
 
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 }
