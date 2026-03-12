@@ -18,8 +18,8 @@ public class StatusResponseDisplay {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    private Integer likesCount;
-    private Integer commentCount;
+    private long likesCount;
+    private long commentCount;
 
     private boolean canComment;
 

@@ -22,7 +22,10 @@ public interface StatusService {
    * @param userId  ID người tạo
    * @return Status entity vừa tạo
    */
-  void createStatus(String content, String visibility, List<MultipartFile> images);
+  Status createStatus(
+    String content,
+    List<MultipartFile> images,
+    Long userId);
 
   List<StatusResponse> getStatusesByProfile();
 

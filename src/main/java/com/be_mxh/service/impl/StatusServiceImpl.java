@@ -2,6 +2,7 @@ package com.be_mxh.service.impl;
 
 import com.be_mxh.config.security.SecurityUtils;
 import com.be_mxh.dto.image.ImageUploadResult;
+import com.be_mxh.dto.status.CreateStatusRequest;
 import com.be_mxh.dto.status.StatusResponse;
 import com.be_mxh.dto.status.StatusResponseDisplay;
 import com.be_mxh.entity.Status;
@@ -106,8 +107,8 @@ public class StatusServiceImpl implements StatusService {
     List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
     for (Status status : results) {
       List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-      Integer totalLikes = likeRepository.countByStatusId(status.getId());
-      Integer totalComments = commentRepository.countByStatusId(status.getId());
+      long totalLikes = likeRepository.countByStatusId(status.getId());
+      long totalComments = commentRepository.countByStatusId(status.getId());
       statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
     }
     return statusResponseDisplays;
@@ -285,6 +286,20 @@ public class StatusServiceImpl implements StatusService {
       .build();
   }
 
+  private StatusResponse mapStatusResponse(Status status, List<StatusImage> images, Long totalComments, Long totalLikes) {
+    return StatusResponse.builder()
+      .id(status.getId())
+      .content(status.getContent())
+      .visibility(status.getVisibility().name())
+      .isActive(status.isActive())
+      .createdAt(status.getCreatedAt())
+      .updatedAt(status.getUpdatedAt())
+      .likesCount(totalLikes)
+      .commentsCount(totalComments)
+      .imageUrls(images.stream().map(this::mapToImageUrl).toList())
+      .build();
+  }
+
 
   @Override
   public List<StatusResponseDisplay> getVisibleStatuses(Long ownerId, Long viewerId) {
@@ -292,8 +307,8 @@ public class StatusServiceImpl implements StatusService {
     List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
     for (Status status : results) {
       List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-      Integer totalLikes = likeRepository.countByStatusId(status.getId());
-      Integer totalComments = commentRepository.countByStatusId(status.getId());
+      long totalLikes = likeRepository.countByStatusId(status.getId());
+      long totalComments = commentRepository.countByStatusId(status.getId());
       statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
     }
     return statusResponseDisplays;
@@ -305,8 +320,8 @@ public class StatusServiceImpl implements StatusService {
     List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
     for (Status status : results) {
       List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-      Integer totalLikes = likeRepository.countByStatusId(status.getId());
-      Integer totalComments = commentRepository.countByStatusId(status.getId());
+      long totalLikes = likeRepository.countByStatusId(status.getId());
+      long totalComments = commentRepository.countByStatusId(status.getId());
       statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
     }
     return statusResponseDisplays;
@@ -318,8 +333,8 @@ public class StatusServiceImpl implements StatusService {
     List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
     for (Status status : results) {
       List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-      Integer totalLikes = likeRepository.countByStatusId(status.getId());
-      Integer totalComments = commentRepository.countByStatusId(status.getId());
+      long totalLikes = likeRepository.countByStatusId(status.getId());
+      long totalComments = commentRepository.countByStatusId(status.getId());
       statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
     }
     return statusResponseDisplays;
@@ -345,7 +360,7 @@ public class StatusServiceImpl implements StatusService {
 
   // mapper
 
-  private StatusResponseDisplay mapStatusResponseDisplay(Status status, List<StatusImage> images, Integer totalComments, Integer totalLikes, Long viewerId) {
+  private StatusResponseDisplay mapStatusResponseDisplay(Status status, List<StatusImage> images, long totalComments, long totalLikes, Long viewerId) {
     boolean canComment = viewerId.equals(status.getUser().getId()) ||
       friendshipRepository.existsAcceptedFriendship(status.getUser().getId(), viewerId);
 

@@ -23,7 +23,7 @@ public class StatusResponse {
   private Long likesCount;
   private Long commentsCount;
 
-  private List<StatusImageResponse> imageUrls = new ArrayList<>();
+  private List<String> imageUrls = new ArrayList<>();
 
   public StatusResponse(
     Long id,
@@ -45,7 +45,7 @@ public class StatusResponse {
     this.commentsCount = commentsCount;
   }
 
-  public void setImages(List<StatusImageResponse> images) {
+  public void setImages(List<String> images) {
     this.imageUrls = images;
   }
 }
