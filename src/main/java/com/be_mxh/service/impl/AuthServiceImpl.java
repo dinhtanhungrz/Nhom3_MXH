@@ -4,6 +4,7 @@ import com.be_mxh.dto.auth.*;
 import com.be_mxh.entity.RefreshToken;
 import com.be_mxh.entity.Role;
 import com.be_mxh.entity.User;
+import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.exception.BadRequestException;
 import com.be_mxh.repository.RefreshTokenRepository;
 import com.be_mxh.repository.UserRepository;
@@ -145,6 +146,17 @@ public class AuthServiceImpl implements AuthService {
                         .collect(Collectors.toSet()))
                 .createdAt(savedUser.getCreatedAt())
                 .build();
+    }
+    @Override
+    public Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new BadRequestException("User not authenticated");
+        }
+
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        return userPrincipal.getId();
     }
 
 }

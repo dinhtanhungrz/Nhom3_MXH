@@ -9,15 +9,17 @@ import java.util.Optional;
 
 @Repository
 public interface CommentRepository
-        extends JpaRepository<Comment, Long> {
+  extends JpaRepository<Comment, Long> {
 
-    Integer countByStatusId(Long statusId);
+  long countByStatusId(Long statusId);
 
-    /**
-     * Tìm comment theo ID và chưa bị xóa mềm (deleted = false).
-     * Dùng trong service xóa comment để đảm bảo không tìm thấy comment đã xóa.
-     */
-    Optional<Comment> findByIdAndDeletedFalse(Long id);
+  List<Comment> findAllByStatusIdOrderByCreatedAtDesc(Long statusId);
 
-    List<Comment> findByStatusIdAndDeletedFalseOrderByCreatedAtAsc(Long statusId);
+  /**
+   * Tìm comment theo ID và chưa bị xóa mềm (deleted = false).
+   * Dùng trong service xóa comment để đảm bảo không tìm thấy comment đã xóa.
+   */
+  Optional<Comment> findByIdAndDeletedFalse(Long id);
+
+  List<Comment> findByStatusIdAndDeletedFalseOrderByCreatedAtAsc(Long statusId);
 }

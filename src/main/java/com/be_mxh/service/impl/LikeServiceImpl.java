@@ -1,10 +1,17 @@
 package com.be_mxh.service.impl;
 
+import com.be_mxh.dto.status.LikeStatus;
+import com.be_mxh.entity.Status;
+import com.be_mxh.entity.StatusLike;
+import com.be_mxh.entity.User;
 import com.be_mxh.repository.LikeRepository;
 import com.be_mxh.repository.StatusRepository;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.LikeService;
+
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,13 +21,67 @@ import org.springframework.stereotype.Service;
 public class LikeServiceImpl implements LikeService {
 
     private final LikeRepository likeRepo;
-    private final StatusRepository postRepo;
+    private final StatusRepository statusRepo;
     private final UserRepository userRepo;
 
     @Override
-    public int toggle(Long postId, String username) {
-        return 0;
+    public LikeStatus likeStatus(Long statusId, Long userId) {
+
+        Status status = statusRepo.findById(statusId)
+                .orElseThrow(() -> new EntityNotFoundException("Status không tồn tại"));
+
+        if (!status.isActive()) {
+            throw new RuntimeException("Status đã bị xoá");
+        }
+
+        boolean alreadyLiked =
+                likeRepo.existsByStatusIdAndUserId(statusId, userId);
+
+        if (!alreadyLiked) {
+
+            StatusLike like = new StatusLike();
+
+            like.setStatus(status);
+
+            User user = userRepo.findById(userId)
+                    .orElseThrow(() -> new EntityNotFoundException("User không tồn tại"));
+
+            like.setUser(user);
+
+            likeRepo.save(like);
+        }
+
+        long likeCount = likeRepo.countByStatusId(statusId);
+
+        return new LikeStatus(statusId, likeCount, true);
     }
+
+    @Override
+    public LikeStatus unlikeStatus(Long statusId, Long userId) {
+
+        boolean liked =
+                likeRepo.existsByStatusIdAndUserId(statusId, userId);
+
+        if (liked) {
+            likeRepo.deleteByStatusIdAndUserId(statusId, userId);
+        }
+
+        long likeCount = likeRepo.countByStatusId(statusId);
+
+        return new LikeStatus(statusId, likeCount, false);
+    }
+
+    @Override
+    public LikeStatus getLikeStatus(Long statusId, Long userId) {
+
+        long likeCount = likeRepo.countByStatusId(statusId);
+
+        boolean liked =
+                likeRepo.existsByStatusIdAndUserId(statusId, userId);
+
+        return new LikeStatus(statusId, likeCount, liked);
+    }
+}
 
 //    public int toggle(Long postId, String username) {
 //
@@ -47,4 +108,3 @@ public class LikeServiceImpl implements LikeService {
 //                    return post.getLikeCount();
 //                });
 //    }
-}
