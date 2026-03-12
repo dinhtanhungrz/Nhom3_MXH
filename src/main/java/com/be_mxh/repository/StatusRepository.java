@@ -34,20 +34,20 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
 //
 //    List<Status> findByUserIdAndVisibility(Long userId, Status.Visibility visibility);
 
-    int countByUserId(Long userId);
+  int countByUserId(Long userId);
 
-    List<Status> findStatusByUserId(Long userId);
+  List<Status> findStatusByUserIdOrderByCreatedAtDesc(Long userId);
 
-    @Query("""
+  @Query("""
         SELECT s FROM Status s
         WHERE s.user.id = :userId
           AND s.visibility = :visibility
           AND s.active = true
         ORDER BY s.createdAt DESC
     """)
-    Page<Status> findPublicStatusesByUser(
-            @Param("userId") Long userId,
-            @Param("visibility") Status.Visibility visibility,
-            Pageable pageable
-    );
+  Page<Status> findPublicStatusesByUser(
+    @Param("userId") Long userId,
+    @Param("visibility") Status.Visibility visibility,
+    Pageable pageable
+  );
 }

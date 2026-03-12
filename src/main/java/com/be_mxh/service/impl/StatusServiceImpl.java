@@ -29,86 +29,86 @@ import java.util.List;
 @Slf4j
 public class StatusServiceImpl implements StatusService {
 
-    private final StatusRepository statusRepository;
-    private final StatusImageRepository statusImageRepository;
-    private final ImageUploadService imageUploadService;
-    private final SecurityUtils securityUtils;
-    private final LikeRepository likeRepository;
-    private final CommentRepository commentRepository;
+  private final StatusRepository statusRepository;
+  private final StatusImageRepository statusImageRepository;
+  private final ImageUploadService imageUploadService;
+  private final SecurityUtils securityUtils;
+  private final LikeRepository likeRepository;
+  private final CommentRepository commentRepository;
 
     /* =========================
        CREATE STATUS
        ========================= */
 
-    @Transactional
-    @Override
-    public void createStatus(String content, String visibility, List<MultipartFile> images) {
-        User user = securityUtils.getCurrentUser();
+  @Transactional
+  @Override
+  public void createStatus(String content, String visibility, List<MultipartFile> images) {
+    User user = securityUtils.getCurrentUser();
 
-        Status status = Status.builder()
-                .content(content)
-                .user(user)
-                .visibility(
-                        visibility.equals("ONLY_ME") ? Status.Visibility.ONLY_ME
-                                : visibility.equals("FRIENDS_ONLY") ? Status.Visibility.FRIENDS_ONLY
-                                : Status.Visibility.PUBLIC)
-                .active(true)
-                .build();
+    Status status = Status.builder()
+      .content(content)
+      .user(user)
+      .visibility(
+        visibility.equals("ONLY_ME") ? Status.Visibility.ONLY_ME
+          : visibility.equals("FRIENDS_ONLY") ? Status.Visibility.FRIENDS_ONLY
+          : Status.Visibility.PUBLIC)
+      .active(true)
+      .build();
 
-        // Lưu status trước để có ID
-        Status result = statusRepository.save(status);
+    // Lưu status trước để có ID
+    Status result = statusRepository.save(status);
 
-        // Upload ảnh nếu có
-        if (images != null && !images.isEmpty()) {
-            String folder = "statuses/" + status.getId();
-            int sortOrder = 0;
+    // Upload ảnh nếu có
+    if (images != null && !images.isEmpty()) {
+      String folder = "statuses/" + status.getId();
+      int sortOrder = 0;
 
-            for (MultipartFile file : images) {
-                if (file.isEmpty()) continue;
+      for (MultipartFile file : images) {
+        if (file.isEmpty()) continue;
 
-                ImageUploadResult uploadResult = imageUploadService.upload(file, folder);
+        ImageUploadResult uploadResult = imageUploadService.upload(file, folder);
 
-                StatusImage statusImage = StatusImage.builder()
-                        .status(result)
-                        .url(uploadResult.getUrl())
-                        .publicId(uploadResult.getPublicId())
-                        .sortOrder(sortOrder++)
-                        .build();
+        StatusImage statusImage = StatusImage.builder()
+          .status(result)
+          .url(uploadResult.getUrl())
+          .publicId(uploadResult.getPublicId())
+          .sortOrder(sortOrder++)
+          .build();
 
-                statusImageRepository.save(statusImage);
-            }
-        }
+        statusImageRepository.save(statusImage);
+      }
     }
+  }
 
-    @Override
-    public List<StatusResponse> getStatusesByProfile() {
-        Long userId = securityUtils.getCurrentUserId();
-        List<Status> statuses = statusRepository.findStatusByUserId(userId);
+  @Override
+  public List<StatusResponse> getStatusesByProfile() {
+    Long userId = securityUtils.getCurrentUserId();
+    List<Status> statuses = statusRepository.findStatusByUserIdOrderByCreatedAtDesc(userId);
 
-        List<StatusResponse> responses = new ArrayList<>();
-        for (Status status : statuses) {
-            Long likeCount = likeRepository.countByStatusId(status.getId());
-            Long commentCount = commentRepository.countByStatusId(status.getId());
-            List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-            responses.add(mapStatusResponse(status, images, commentCount, likeCount));
-        }
-        return responses;
+    List<StatusResponse> responses = new ArrayList<>();
+    for (Status status : statuses) {
+      Long likeCount = likeRepository.countByStatusId(status.getId());
+      Long commentCount = commentRepository.countByStatusId(status.getId());
+      List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+      responses.add(mapStatusResponse(status, images, commentCount, likeCount));
     }
+    return responses;
+  }
 
-    @Override
-    public List<StatusResponse> getFeedStatuses(Long userId) {
-        return List.of();
-    }
+  @Override
+  public List<StatusResponse> getFeedStatuses(Long userId) {
+    return List.of();
+  }
 
-    @Override
-    public Status getStatusById(Long statusId, Long userId) {
-        return null;
-    }
+  @Override
+  public Status getStatusById(Long statusId, Long userId) {
+    return null;
+  }
 
-    @Override
-    public void deleteStatus(Long statusId, Long userId) {
+  @Override
+  public void deleteStatus(Long statusId, Long userId) {
 
-    }
+  }
 
 //
 //    @Transactional
@@ -173,83 +173,83 @@ public class StatusServiceImpl implements StatusService {
        GET STATUS
        ========================= */
 
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    @Override
-    public StatusResponse getStatusById(Long statusId, UserPrincipal currentUser) {
+  @org.springframework.transaction.annotation.Transactional(readOnly = true)
+  @Override
+  public StatusResponse getStatusById(Long statusId, UserPrincipal currentUser) {
 
-        Status status = statusRepository.findById(statusId)
-                .orElseThrow(() -> new EntityNotFoundException("Status không tồn tại"));
+    Status status = statusRepository.findById(statusId)
+      .orElseThrow(() -> new EntityNotFoundException("Status không tồn tại"));
 
-        if (!status.isActive()) {
-            throw new EntityNotFoundException("Status đã bị xoá");
-        }
-
-        // TODO: enforce privacy (PUBLIC / FRIENDS_ONLY / ONLY_ME)
-
-        List<StatusImage> images =
-                statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-
-        return mapToResponse(status, images);
+    if (!status.isActive()) {
+      throw new EntityNotFoundException("Status đã bị xoá");
     }
+
+    // TODO: enforce privacy (PUBLIC / FRIENDS_ONLY / ONLY_ME)
+
+    List<StatusImage> images =
+      statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+
+    return mapToResponse(status, images);
+  }
 
     /* =========================
        DELETE STATUS (SOFT)
        ========================= */
 
-    @Transactional
-    @Override
-    public void deleteStatus(Long statusId, UserPrincipal currentUser) {
+  @Transactional
+  @Override
+  public void deleteStatus(Long statusId, UserPrincipal currentUser) {
 
-        Status status = statusRepository.findById(statusId)
-                .orElseThrow(() -> new EntityNotFoundException("Status không tồn tại"));
+    Status status = statusRepository.findById(statusId)
+      .orElseThrow(() -> new EntityNotFoundException("Status không tồn tại"));
 
-        if (!status.getUser().getId().equals(currentUser.getId())) {
-            throw new SecurityException("Không có quyền xoá status này");
-        }
-
-        status.setActive(false);
-        statusRepository.save(status);
+    if (!status.getUser().getId().equals(currentUser.getId())) {
+      throw new SecurityException("Không có quyền xoá status này");
     }
 
-    @Override
-    public Page<StatusResponse> getPublicStatusesByUser(Long userId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Status> statusPage = statusRepository.findPublicStatusesByUser(
-                userId,
-                Status.Visibility.PUBLIC,
-                pageable
-        );
+    status.setActive(false);
+    statusRepository.save(status);
+  }
 
-        return statusPage.map(status -> {
-            List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-            Long likeCount = likeRepository.countByStatusId(status.getId());
-            Long commentCount = commentRepository.countByStatusId(status.getId());
-            return mapStatusResponse(status, images, commentCount, likeCount);
-        });
-    }
+  @Override
+  public Page<StatusResponse> getPublicStatusesByUser(Long userId, int page, int size) {
+    Pageable pageable = PageRequest.of(page, size);
+    Page<Status> statusPage = statusRepository.findPublicStatusesByUser(
+      userId,
+      Status.Visibility.PUBLIC,
+      pageable
+    );
+
+    return statusPage.map(status -> {
+      List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+      Long likeCount = likeRepository.countByStatusId(status.getId());
+      Long commentCount = commentRepository.countByStatusId(status.getId());
+      return mapStatusResponse(status, images, commentCount, likeCount);
+    });
+  }
 
     /* =========================
        MAPPER
        ========================= */
 
-    private StatusResponse mapToResponse(Status status, List<StatusImage> images) {
+  private StatusResponse mapToResponse(Status status, List<StatusImage> images) {
 
-        return StatusResponse.builder()
-                .id(status.getId())
-                .content(status.getContent())
-                .visibility(status.getVisibility().name())
-                .createdAt(status.getCreatedAt())
-                .imageUrls(
-                        images.stream()
-                                .map(img -> StatusImageResponse.builder()
-                                        .id(img.getId())
-                                        .url(img.getUrl())
-                                        .sortOrder(img.getSortOrder())
-                                        .build())
-                                .toList()
-                )
-                .build();
-    }
+    return StatusResponse.builder()
+      .id(status.getId())
+      .content(status.getContent())
+      .visibility(status.getVisibility().name())
+      .createdAt(status.getCreatedAt())
+      .imageUrls(
+        images.stream()
+          .map(img -> StatusImageResponse.builder()
+            .id(img.getId())
+            .url(img.getUrl())
+            .sortOrder(img.getSortOrder())
+            .build())
+          .toList()
+      )
+      .build();
+  }
 
 //    @Override
 //    @Transactional
@@ -293,27 +293,27 @@ public class StatusServiceImpl implements StatusService {
 //    }
 
 
-    // mapper
+  // mapper
 
-    private StatusResponse mapStatusResponse(Status status, List<StatusImage> images, Long totalComments, Long totalLikes) {
-        return StatusResponse.builder()
-                .id(status.getId())
-                .content(status.getContent())
-                .visibility(status.getVisibility().name())
-                .isActive(status.isActive())
-                .createdAt(status.getCreatedAt())
-                .updatedAt(status.getUpdatedAt())
-                .likesCount(totalLikes)
-                .commentsCount(totalComments)
-                .imageUrls(images.stream().map(this::mapToImageUrl).toList())
-                .build();
-    }
+  private StatusResponse mapStatusResponse(Status status, List<StatusImage> images, Long totalComments, Long totalLikes) {
+    return StatusResponse.builder()
+      .id(status.getId())
+      .content(status.getContent())
+      .visibility(status.getVisibility().name())
+      .isActive(status.isActive())
+      .createdAt(status.getCreatedAt())
+      .updatedAt(status.getUpdatedAt())
+      .likesCount(totalLikes)
+      .commentsCount(totalComments)
+      .imageUrls(images.stream().map(this::mapToImageUrl).toList())
+      .build();
+  }
 
-    private StatusImageResponse mapToImageUrl(StatusImage img) {
-        return StatusImageResponse.builder()
-                .id(img.getId())
-                .url(img.getUrl())
-                .sortOrder(img.getSortOrder())
-                .build();
-    }
+  private StatusImageResponse mapToImageUrl(StatusImage img) {
+    return StatusImageResponse.builder()
+      .id(img.getId())
+      .url(img.getUrl())
+      .sortOrder(img.getSortOrder())
+      .build();
+  }
 }
