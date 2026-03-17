@@ -11,21 +11,23 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class StatusResponseDisplay {
-    private Long id;
-    private String content;
-    private String visibility;
-    private boolean isActive;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+  private Long id;
+  private String content;
+  private String visibility;
+  private boolean isActive;
+  private LocalDateTime createdAt;
+  private LocalDateTime updatedAt;
 
-    private long likesCount;
-    private long commentCount;
+  private long likesCount;
+  private long commentsCount;
 
-    private boolean canComment;
+  private boolean canComment;
 
-    private Long authorId;
-    private String authorName;
-    private String authorAvatarUrl;
+  private Long authorId;
+  private String authorName;
+  private String authorAvatarUrl;
 
-    private List<String> imageUrls;
+  private boolean isLike;
+
+  private List<StatusImageResponse> imageUrls;
 }

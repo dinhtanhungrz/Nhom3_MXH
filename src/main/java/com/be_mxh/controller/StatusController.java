@@ -7,7 +7,6 @@ import com.be_mxh.entity.Status;
 import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.service.StatusService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,45 +25,31 @@ public class StatusController {
   private final StatusService statusService;
 
   /**
-   * [Chức năng] Tạo status mới (có thể kèm nhiều ảnh)
-   * <p>
-   * API: POST /api/statuses
-   * Content-Type: multipart/form-data
-   *
-   * @param content    Nội dung bài viết (không bắt buộc nếu có ảnh)
-   * @param visibility Quyền hiển thị: PUBLIC | FRIENDS_ONLY | ONLY_ME (mặc định: PUBLIC)
-   * @param images     Danh sách ảnh đính kèm (không bắt buộc, tối đa 10 ảnh)
-   * @return Status vừa tạo kèm URL ảnh đã upload
+   * Tạo status mới + upload nhiều ảnh
    */
   @PreAuthorize("hasRole('USER')")
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<?> createStatus(
     @RequestParam(value = "content", required = false) String content,
-    @RequestParam(value = "visibility", required = false, defaultValue = "PUBLIC") String visibility,
-    @RequestParam(value = "images", required = false) List<MultipartFile> images,
-    @AuthenticationPrincipal UserPrincipal userPrincipal) {
+    @RequestParam(value = "visibility", defaultValue = "PUBLIC") String visibility,
+    @AuthenticationPrincipal UserPrincipal userPrincipal,
+    @RequestParam(value = "images", required = false) List<MultipartFile> images
+  ) {
 
     if ((content == null || content.trim().isEmpty())
       && (images == null || images.isEmpty())) {
-      return ResponseEntity.badRequest()
-        .body("Status phải có nội dung hoặc ảnh");
+      return ResponseEntity.badRequest().build();
     }
 
-    // Chuyển chuỗi "PUBLIC"/"FRIENDS_ONLY"/"ONLY_ME" sang enum
-    Status.Visibility vis;
-    try {
-      vis = Status.Visibility.valueOf(visibility.toUpperCase());
-    } catch (IllegalArgumentException ex) {
-      return ResponseEntity.badRequest()
-        .body("Visibility không hợp lệ. Dùng: PUBLIC, FRIENDS_ONLY hoặc ONLY_ME");
-    }
+    statusService.createStatus(content, visibility, images);
 
-    // Gọi overload mới (có hỗ trợ visibility)
-    com.be_mxh.dto.status.CreateStatusRequest request = new com.be_mxh.dto.status.CreateStatusRequest();
-    request.setContent(content);
-    request.setVisibility(vis);
-
-    return ResponseEntity.ok(statusService.createStatus(request, images, userPrincipal));
+    return ResponseEntity.status(HttpStatus.OK).body(
+      ApiResponse.<Object>builder()
+        .code(HttpStatus.OK.value())
+        .message("Created status!")
+        .data(null)
+        .build()
+    );
   }
 
   @PreAuthorize("hasRole('USER')")
@@ -92,7 +77,7 @@ public class StatusController {
    * @return Danh sách Status sắp xếp theo thời gian mới nhất
    */
   @GetMapping
-  public ResponseEntity<?> getStatuses(
+  public ResponseEntity<?> getFeedStatuses(
     @AuthenticationPrincipal UserPrincipal userPrincipal) {
     List<StatusResponseDisplay> statuses = statusService.getFeedStatuses(userPrincipal.getId());
 
@@ -137,16 +122,6 @@ public class StatusController {
     @AuthenticationPrincipal UserPrincipal userPrincipal) {
     statusService.deleteStatus(id, userPrincipal.getId());
     return ResponseEntity.ok("Xoá status thành công");
-  }
-
-  @GetMapping("/user/{userId}")
-  public ResponseEntity<Page<StatusResponse>> getPublicStatuses(
-    @PathVariable Long userId,
-    @RequestParam(defaultValue = "0") int page,
-    @RequestParam(defaultValue = "10") int size
-  ) {
-    Page<StatusResponse> result = statusService.getPublicStatusesByUser(userId, page, size);
-    return ResponseEntity.ok(result);
   }
 
   /**
@@ -197,8 +172,9 @@ public class StatusController {
    * <p>
    * Ví dụ: GET /api/statuses/user/5
    */
+  @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
   @GetMapping("/user/{ownerId}")
-  public ResponseEntity<?> getUserStatuses(
+  public ResponseEntity<?> getStatusesByUser(
     @PathVariable Long ownerId,
     @AuthenticationPrincipal UserPrincipal currentUser) {
     Long viewerId = currentUser.getId();

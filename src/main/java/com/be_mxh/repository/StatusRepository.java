@@ -141,7 +141,7 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
                 )
             )
         )
-        ORDER BY s.createdAt DESC
+        ORDER BY s.createdAt DESC LIMIT 10
     """)
   List<Status> getNewsfeedStatuses(@Param("viewerId") Long viewerId);
 }

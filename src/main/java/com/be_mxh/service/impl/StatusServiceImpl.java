@@ -3,23 +3,19 @@ package com.be_mxh.service.impl;
 import com.be_mxh.config.security.SecurityUtils;
 import com.be_mxh.dto.image.ImageUploadResult;
 import com.be_mxh.dto.status.CreateStatusRequest;
+import com.be_mxh.dto.status.StatusImageResponse;
 import com.be_mxh.dto.status.StatusResponse;
 import com.be_mxh.dto.status.StatusResponseDisplay;
 import com.be_mxh.entity.Status;
 import com.be_mxh.entity.StatusImage;
 import com.be_mxh.entity.User;
-import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.repository.*;
 import com.be_mxh.service.ImageUploadService;
 import com.be_mxh.service.StatusService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
+import lombok.extern.slf4j.Slf4j;import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -47,19 +43,21 @@ public class StatusServiceImpl implements StatusService {
    */
   @Transactional
   @Override
-  public Status createStatus(String content, List<MultipartFile> images, Long userId) {
-    User user = userRepository.findById(userId)
-      .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+  public void createStatus(String content, String visibility, List<MultipartFile> images) {
+    User user = securityUtils.getCurrentUser();
 
     Status status = Status.builder()
       .content(content)
       .user(user)
-      .visibility(Status.Visibility.PUBLIC)
+      .visibility(
+        visibility.equals("ONLY_ME") ? Status.Visibility.ONLY_ME
+          : visibility.equals("FRIENDS_ONLY") ? Status.Visibility.FRIENDS_ONLY
+          : Status.Visibility.PUBLIC)
       .active(true)
       .build();
 
     // Lưu status trước để có ID
-    status = statusRepository.save(status);
+    Status result = statusRepository.save(status);
 
     // Upload ảnh nếu có
     if (images != null && !images.isEmpty()) {
@@ -69,11 +67,10 @@ public class StatusServiceImpl implements StatusService {
       for (MultipartFile file : images) {
         if (file.isEmpty()) continue;
 
-        ImageUploadResult uploadResult =
-          imageUploadService.upload(file, folder);
+        ImageUploadResult uploadResult = imageUploadService.upload(file, folder);
 
         StatusImage statusImage = StatusImage.builder()
-          .status(status)
+          .status(result)
           .url(uploadResult.getUrl())
           .publicId(uploadResult.getPublicId())
           .sortOrder(sortOrder++)
@@ -82,8 +79,6 @@ public class StatusServiceImpl implements StatusService {
         statusImageRepository.save(statusImage);
       }
     }
-
-    return status;
   }
 
   @Override
@@ -94,9 +89,10 @@ public class StatusServiceImpl implements StatusService {
     List<StatusResponse> responses = new ArrayList<>();
     for (Status status : statuses) {
       Long likeCount = likeRepository.countByStatusId(status.getId());
-      Long commentCount = commentRepository.countByStatusId(status.getId());
+      Long commentCount = commentRepository.countByStatusIdAndDeletedFalse(status.getId());
       List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-      responses.add(mapStatusResponse(status, images, commentCount, likeCount));
+      boolean isLike = likeRepository.existsByStatusIdAndUserId(status.getId(), userId);
+      responses.add(mapStatusResponse(status, images, commentCount, likeCount, isLike));
     }
     return responses;
   }
@@ -104,14 +100,7 @@ public class StatusServiceImpl implements StatusService {
   @Override
   public List<StatusResponseDisplay> getFeedStatuses(Long viewerId) {
     List<Status> results = statusRepository.getNewsfeedStatuses(viewerId);
-    List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
-    for (Status status : results) {
-      List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-      long totalLikes = likeRepository.countByStatusId(status.getId());
-      long totalComments = commentRepository.countByStatusId(status.getId());
-      statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
-    }
-    return statusResponseDisplays;
+    return mapStatusResponseDisplays(results, viewerId);
   }
 
   @Override
@@ -124,220 +113,22 @@ public class StatusServiceImpl implements StatusService {
 
   }
 
-  @Transactional
-  @Override
-  public StatusResponse createStatus(
-    CreateStatusRequest request,
-    List<MultipartFile> images,
-    UserPrincipal currentUser) {
-
-    // 1️⃣ Tạo Status
-    Status status = Status.builder()
-      .content(request.getContent())
-      .visibility(request.getVisibility())
-      .user(User.builder().id(currentUser.getId()).build())
-      .active(true)
-      .build();
-
-    statusRepository.save(status);
-
-    List<StatusImage> statusImages = new ArrayList<>();
-    List<String> uploadedPublicIds = new ArrayList<>();
-
-    // 2️⃣ Upload & lưu ảnh
-    if (images != null && !images.isEmpty()) {
-
-      if (images.size() > 10) {
-        throw new IllegalArgumentException("Tối đa 10 ảnh cho mỗi status");
-      }
-
-      try {
-        String folder = "statuses/" + status.getId();
-        int order = 0;
-        for (MultipartFile file : images) {
-
-          ImageUploadResult upload = imageUploadService.upload(file, folder);
-          uploadedPublicIds.add(upload.getPublicId());
-
-          StatusImage image = StatusImage.builder()
-            .status(status)
-            .url(upload.getUrl())
-            .publicId(upload.getPublicId())
-            .sortOrder(order++)
-            .build();
-
-          statusImages.add(image);
-        }
-
-        statusImageRepository.saveAll(statusImages);
-
-      } catch (Exception ex) {
-        // rollback DB + cleanup ảnh đã upload
-        uploadedPublicIds.forEach(imageUploadService::delete);
-        throw ex;
-      }
-    }
-
-    return mapToResponse(status, statusImages);
-  }
-
-  /*
-   * =========================
-   * GET STATUS
-   * =========================
-   */
-
-  @org.springframework.transaction.annotation.Transactional(readOnly = true)
-  @Override
-  public StatusResponse getStatusById(Long statusId, UserPrincipal currentUser) {
-
-    Status status = statusRepository.findById(statusId)
-      .orElseThrow(() -> new EntityNotFoundException("Status không tồn tại"));
-
-    if (!status.isActive()) {
-      throw new EntityNotFoundException("Status đã bị xoá");
-    }
-
-    // TODO: enforce privacy (PUBLIC / FRIENDS_ONLY / ONLY_ME)
-
-    Long ownerId = status.getUser().getId(); // Ai là chủ status?
-    Long viewerId = currentUser.getId(); // Ai đang xem?
-    switch (status.getVisibility()) {
-      case ONLY_ME -> {
-        // Chỉ chủ tài khoản mới được xem
-        // Nếu người xem KHÁC chủ → ném lỗi 403
-        if (!ownerId.equals(viewerId))
-          throw new AccessDeniedException("Bạn không có quyền xem status này");
-      }
-      case FRIENDS_ONLY -> {
-        if (!ownerId.equals(viewerId)) { // chủ thì cứ cho xem
-          // Hỏi database: viewerId và ownerId có phải bạn bè không?
-          boolean areFriends = friendshipRepository
-            .existsAcceptedFriendship(viewerId, ownerId);
-          if (!areFriends)
-            throw new AccessDeniedException("Bạn không có quyền xem status này");
-        }
-      }
-      case PUBLIC -> {
-        // Không làm gì — ai cũng xem được
-      }
-    }
-
-    List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-
-    return mapToResponse(status, images);
-  }
-
-  /*
-   * =========================
-   * DELETE STATUS (SOFT)
-   * =========================
-   */
-
-  @Transactional
-  @Override
-  public void deleteStatus(Long statusId, UserPrincipal currentUser) {
-
-    Status status = statusRepository.findById(statusId)
-      .orElseThrow(() -> new EntityNotFoundException("Status không tồn tại"));
-
-    if (!status.getUser().getId().equals(currentUser.getId())) {
-      throw new SecurityException("Không có quyền xoá status này");
-    }
-
-    status.setActive(false);
-    statusRepository.save(status);
-  }
-
-  @Override
-  public Page<StatusResponse> getPublicStatusesByUser(Long userId, int page, int size) {
-    Pageable pageable = PageRequest.of(page, size);
-    Page<Status> statusPage = statusRepository.findPublicStatusesByUser(
-      userId,
-      Status.Visibility.PUBLIC,
-      pageable
-    );
-
-    return statusPage.map(status -> {
-      List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-      Long likeCount = likeRepository.countByStatusId(status.getId());
-      Long commentCount = commentRepository.countByStatusId(status.getId());
-      return mapStatusResponse(status, images, commentCount, likeCount);
-    });
-  }
-
-  /*
-   * =========================
-   * MAPPER
-   * =========================
-   */
-
-  private StatusResponse mapToResponse(Status status, List<StatusImage> images) {
-
-    return StatusResponse.builder()
-      .id(status.getId())
-      .content(status.getContent())
-      .visibility(status.getVisibility().name())
-      .createdAt(status.getCreatedAt())
-      .imageUrls(
-        images.stream()
-          .map(StatusImage::getUrl)
-          .toList())
-      .build();
-  }
-
-  private StatusResponse mapStatusResponse(Status status, List<StatusImage> images, Long totalComments, Long totalLikes) {
-    return StatusResponse.builder()
-      .id(status.getId())
-      .content(status.getContent())
-      .visibility(status.getVisibility().name())
-      .isActive(status.isActive())
-      .createdAt(status.getCreatedAt())
-      .updatedAt(status.getUpdatedAt())
-      .likesCount(totalLikes)
-      .commentsCount(totalComments)
-      .imageUrls(images.stream().map(this::mapToImageUrl).toList())
-      .build();
-  }
-
-
   @Override
   public List<StatusResponseDisplay> getVisibleStatuses(Long ownerId, Long viewerId) {
     List<Status> results = statusRepository.findVisibleStatuses(ownerId, viewerId);
-    List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
-    for (Status status : results) {
-      List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-      long totalLikes = likeRepository.countByStatusId(status.getId());
-      long totalComments = commentRepository.countByStatusId(status.getId());
-      statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
-    }
-    return statusResponseDisplays;
+    return mapStatusResponseDisplays(results, viewerId);
   }
 
   @Override
   public List<StatusResponseDisplay> searchUserStatuses(Long ownerId, Long viewerId, String keyword) {
     List<Status> results = statusRepository.searchVisibleStatuses(ownerId, viewerId, keyword);
-    List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
-    for (Status status : results) {
-      List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-      long totalLikes = likeRepository.countByStatusId(status.getId());
-      long totalComments = commentRepository.countByStatusId(status.getId());
-      statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
-    }
-    return statusResponseDisplays;
+    return mapStatusResponseDisplays(results, viewerId);
   }
 
   @Override
   public List<StatusResponseDisplay> findAllByContentContaining(String query, Long viewerId) {
     List<Status> results = statusRepository.globalSearch(viewerId, query);
-    List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
-    for (Status status : results) {
-      List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
-      long totalLikes = likeRepository.countByStatusId(status.getId());
-      long totalComments = commentRepository.countByStatusId(status.getId());
-      statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId));
-    }
-    return statusResponseDisplays;
+    return mapStatusResponseDisplays(results, viewerId);
   }
 
   @Transactional
@@ -359,8 +150,26 @@ public class StatusServiceImpl implements StatusService {
   }
 
   // mapper
+  private List<StatusResponseDisplay> mapStatusResponseDisplays(List<Status> statuses, Long viewerId) {
+    List<StatusResponseDisplay> statusResponseDisplays = new ArrayList<>();
+    for (Status status : statuses) {
+      List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+      long totalLikes = likeRepository.countByStatusId(status.getId());
+      long totalComments = commentRepository.countByStatusIdAndDeletedFalse(status.getId());
+      boolean isLike = likeRepository.existsByStatusIdAndUserId(status.getId(), viewerId);
+      statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId, isLike));
+    }
+    return statusResponseDisplays;
+  }
 
-  private StatusResponseDisplay mapStatusResponseDisplay(Status status, List<StatusImage> images, long totalComments, long totalLikes, Long viewerId) {
+  private StatusResponseDisplay mapStatusResponseDisplay(
+    Status status,
+    List<StatusImage> images,
+    long totalComments,
+    long totalLikes,
+    Long viewerId,
+    boolean isLike
+  ) {
     boolean canComment = viewerId.equals(status.getUser().getId()) ||
       friendshipRepository.existsAcceptedFriendship(status.getUser().getId(), viewerId);
 
@@ -372,16 +181,36 @@ public class StatusServiceImpl implements StatusService {
       .createdAt(status.getCreatedAt())
       .updatedAt(status.getUpdatedAt())
       .likesCount(totalLikes)
-      .commentCount(totalComments)
+      .commentsCount(totalComments)
       .canComment(canComment)
       .authorId(status.getUser().getId())
-      .authorName(status.getUser().getFullName())
+      .authorName(status.getUser().getFullName() != null ? status.getUser().getFullName() : status.getUser().getUsername())
       .authorAvatarUrl(status.getUser().getAvatarUrl())
+      .isLike(isLike)
       .imageUrls(images.stream().map(this::mapToImageUrl).toList())
       .build();
   }
 
-  private String mapToImageUrl(StatusImage image) {
-    return image.getUrl();
+  private StatusImageResponse mapToImageUrl(StatusImage img) {
+    return StatusImageResponse.builder()
+      .id(img.getId())
+      .url(img.getUrl())
+      .sortOrder(img.getSortOrder())
+      .build();
+  }
+
+  private StatusResponse mapStatusResponse(Status status, List<StatusImage> images, Long totalComments, Long totalLikes, boolean isLike) {
+    return StatusResponse.builder()
+      .id(status.getId())
+      .content(status.getContent())
+      .visibility(status.getVisibility().name())
+      .isActive(status.isActive())
+      .createdAt(status.getCreatedAt())
+      .updatedAt(status.getUpdatedAt())
+      .likesCount(totalLikes)
+      .commentsCount(totalComments)
+      .isLike(isLike)
+      .imageUrls(images.stream().map(this::mapToImageUrl).toList())
+      .build();
   }
 }

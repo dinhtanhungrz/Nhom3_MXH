@@ -13,20 +13,6 @@ import java.util.List;
 
 public interface StatusService {
 
-  /**
-   * [Chức năng] Tạo status mới (có thể kèm nhiều ảnh) — phiên bản cũ
-   * API: POST /api/statuses
-   *
-   * @param content Nội dung bài viết
-   * @param images  Danh sách ảnh đính kèm
-   * @param userId  ID người tạo
-   * @return Status entity vừa tạo
-   */
-  Status createStatus(
-    String content,
-    List<MultipartFile> images,
-    Long userId);
-
   List<StatusResponse> getStatusesByProfile();
 
   /**
@@ -71,38 +57,7 @@ public interface StatusService {
    * @param currentUser Người đang đăng nhập
    * @return StatusResponse DTO gồm id, content, visibility, imageUrls
    */
-  @Transactional
-  StatusResponse createStatus(
-    CreateStatusRequest request,
-    List<MultipartFile> images,
-    UserPrincipal currentUser);
-
-  /**
-   * [Chức năng] Lấy chi tiết 1 status — có kiểm tra quyền xem (visibility)
-   * API: GET /api/statuses/{id}
-   * <p>
-   * - PUBLIC     → ai cũng xem được
-   * - FRIENDS_ONLY → chỉ bạn bè và chủ bài
-   * - ONLY_ME   → chỉ chủ bài (403 nếu người khác truy cập)
-   *
-   * @param statusId    ID của status cần xem
-   * @param currentUser Người đang đăng nhập
-   * @return StatusResponse DTO nếu có quyền, ném AccessDeniedException nếu không
-   */
-  @org.springframework.transaction.annotation.Transactional(readOnly = true)
-  StatusResponse getStatusById(Long statusId, UserPrincipal currentUser);
-
-  /**
-   * [Chức năng] Xóa mềm status — chỉ chủ bài được xóa
-   * API: DELETE /api/statuses/{id}
-   * <p>
-   * Không xóa khỏi DB, chỉ đặt active = false (soft delete).
-   *
-   * @param statusId    ID của status cần xóa
-   * @param currentUser Người đang đăng nhập (phải là chủ bài)
-   */
-  @Transactional
-  void deleteStatus(Long statusId, UserPrincipal currentUser);
+  void createStatus(String content, String visibility, List<MultipartFile> images);
 
   /**
    * [Chức năng] Tìm kiếm bài viết toàn mạng theo từ khóa — dùng cho trang "Kết quả tìm kiếm > tab Bài viết"
@@ -158,10 +113,4 @@ public interface StatusService {
    * @param userId        ID người đang đăng nhập (phải là chủ bài)
    */
   void updateVisibility(Long statusId, Status.Visibility newVisibility, Long userId);
-
-  Page<StatusResponse> getPublicStatusesByUser(
-    Long userId,
-    int page,
-    int size
-  );
 }
