@@ -8,12 +8,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface CommentRepository
-  extends JpaRepository<Comment, Long> {
+public interface CommentRepository extends JpaRepository<Comment, Long> {
 
-  long countByStatusId(Long statusId);
+  long countByStatusIdAndDeletedFalse(Long statusId);
 
-  List<Comment> findAllByStatusIdOrderByCreatedAtDesc(Long statusId);
+  List<Comment> findAllByStatusIdAndDeletedFalseOrderByCreatedAtDesc(Long statusId);
 
   /**
    * Tìm comment theo ID và chưa bị xóa mềm (deleted = false).

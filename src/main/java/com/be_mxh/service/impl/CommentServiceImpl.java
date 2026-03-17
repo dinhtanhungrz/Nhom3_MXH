@@ -34,50 +34,6 @@ public class CommentServiceImpl implements CommentService {
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
 
-  // =====================================================================
-  // ĐĂNG COMMENT
-  // =====================================================================
-
-  /**
-   * Đăng một comment mới vào status.
-   * Kiểm tra status phải đang active (chưa bị xóa mềm).
-   */
-  @Override
-  public void comment(Long postId, String content, String username) {
-    log.info("[CommentService] comment – postId={}, user={}", postId, username);
-
-    Status post = statusRepository.findById(postId)
-      .filter(Status::isActive)
-      .orElseThrow(() -> {
-        log.warn("[CommentService] Status không tồn tại hoặc đã xóa – postId={}", postId);
-        return new ResourceNotFoundException("Bài viết không tồn tại");
-      });
-
-    User user = userRepository
-      .findByUsernameOrEmail(username, username)
-      .orElseThrow(() -> {
-        log.warn("[CommentService] Không tìm thấy user – username={}", username);
-        return new ResourceNotFoundException("Người dùng không tồn tại");
-      });
-
-    // Kiểm tra quyền comment: phải là chủ bài viết hoặc bạn bè
-    if (!post.getUser().getId().equals(user.getId())) {
-      boolean isFriend = friendshipRepository.existsAcceptedFriendship(post.getUser().getId(), user.getId());
-      if (!isFriend) {
-        log.warn("[CommentService] User {} không có quyền comment bài viết của {}", user.getId(), post.getUser().getId());
-        throw new AccessDeniedException("Bạn không có quyền bình luận bài viết này");
-      }
-    }
-
-    Comment c = new Comment();
-    c.setContent(content);
-    c.setUser(user);
-    c.setStatus(post);
-
-    commentRepository.save(c);
-    log.info("[CommentService] Đã lưu comment mới – commentId={}, postId={}, userId={}",
-      c.getId(), postId, user.getId());
-  }
 
   @Override
   @Transactional
@@ -122,7 +78,7 @@ public class CommentServiceImpl implements CommentService {
   @Override
   @Transactional(readOnly = true)
   public List<CommentResponse> getCommentsByStatus(Long statusId, Long currentUserId) {
-    return commentRepository.findAllByStatusIdOrderByCreatedAtDesc(statusId)
+    return commentRepository.findAllByStatusIdAndDeletedFalseOrderByCreatedAtDesc(statusId)
       .stream()
       .map(comment -> mapToResponse(comment, currentUserId))
       .collect(Collectors.toList());
@@ -140,19 +96,6 @@ public class CommentServiceImpl implements CommentService {
 
     comment.setContent(content);
     commentRepository.save(comment);
-  }
-
-  private CommentResponse mapToResponse(Comment comment, Long currentUserId) {
-    return CommentResponse.builder()
-      .id(comment.getId())
-      .content(comment.getContent())
-      .username(comment.getUser().getUsername())
-      .userAvatar(comment.getUser().getAvatarUrl())
-      .createdAt(comment.getCreatedAt())
-      .isOwner(currentUserId != null && comment.getUser().getId().equals(currentUserId))
-      .likeCount(0)
-      .isLiked(false)
-      .build();
   }
 
   // =====================================================================
@@ -197,18 +140,20 @@ public class CommentServiceImpl implements CommentService {
       commentId, currentUserId);
   }
 
-    @Override
-    public List<CommentResponseDisplay> getCommentsByPostId(Long postId, Long currentUserId) {
-        List<Comment> comments = commentRepository.findByStatusIdAndDeletedFalseOrderByCreatedAtAsc(postId);
-        return comments.stream().map(c -> CommentResponseDisplay.builder()
-                .id(c.getId())
-                .content(c.getContent())
-                .authorId(c.getUser().getId())
-                .authorName(c.getUser().getFullName())
-                .authorAvatarUrl(c.getUser().getAvatarUrl())
-                .createdAt(c.getCreatedAt())
-                .canDelete(c.getUser().getId().equals(currentUserId))
-                .build()).collect(Collectors.toList());
-    }
+
+  // mapper
+
+  private CommentResponse mapToResponse(Comment comment, Long currentUserId) {
+    return CommentResponse.builder()
+      .id(comment.getId())
+      .content(comment.getContent())
+      .username(comment.getUser().getUsername())
+      .userAvatar(comment.getUser().getAvatarUrl())
+      .createdAt(comment.getCreatedAt())
+      .isOwner(currentUserId != null && comment.getUser().getId().equals(currentUserId))
+      .likeCount(0)
+      .isLiked(false)
+      .build();
+  }
 }
 
