@@ -42,9 +42,9 @@ public interface StatusService {
    * API: DELETE /api/statuses/{id}
    *
    * @param statusId ID của status cần xóa
-   * @param userId   ID người thực hiện (phải là chủ bài)
+   * @param currentUserId   ID người thực hiện (phải là chủ bài)
    */
-  void deleteStatus(Long statusId, Long userId);
+  void deleteStatus(Long statusId, Long currentUserId);
 
   /**
    * [Chức năng] Tạo status mới kèm nhiều ảnh và quyền hiển thị — phiên bản mới

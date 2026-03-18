@@ -108,9 +108,28 @@ public class StatusServiceImpl implements StatusService {
     return null;
   }
 
+  @Transactional
   @Override
-  public void deleteStatus(Long statusId, Long userId) {
+  public void deleteStatus(Long statusId, Long currentUserId) {
+    // 1. Tìm status
+    Status status = statusRepository.findById(statusId)
+      .orElseThrow(() -> new ResourceNotFoundException("Status không tồn tại"));
 
+    // 2. Kiểm tra quyền
+    if (!status.getUser().getId().equals(currentUserId)) {
+      throw new AccessDeniedException("Bạn không có quyền xóa bài viết này");
+    }
+
+    // 3. Xóa ảnh trên Cloudinary trước
+    List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(statusId);
+
+    for (StatusImage img : images) {
+      imageUploadService.delete(img.getPublicId());
+    }
+
+    // 4. Xóa ảnh trong DB rồi xóa status
+    statusImageRepository.deleteAll(images);
+    statusRepository.delete(status);
   }
 
   @Override

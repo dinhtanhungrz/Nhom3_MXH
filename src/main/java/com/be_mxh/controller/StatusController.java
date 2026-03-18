@@ -122,7 +122,13 @@ public class StatusController {
     @PathVariable Long id,
     @AuthenticationPrincipal UserPrincipal userPrincipal) {
     statusService.deleteStatus(id, userPrincipal.getId());
-    return ResponseEntity.ok("Xoá status thành công");
+
+    return ResponseEntity.ok(
+      ApiResponse.<Void>builder()
+        .code(200)
+        .message("Delete status successfully")
+        .build()
+    );
   }
 
   /**
