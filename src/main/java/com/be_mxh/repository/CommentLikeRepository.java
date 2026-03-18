@@ -12,4 +12,6 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, Long> 
     List<CommentLike> findByCommentId(Long commentId);
     long countByCommentId(Long commentId);
     void deleteByCommentIdAndUserId(Long commentId, Long userId);
+    // Để kiểm tra trạng thái Like (Dùng cho nút màu xanh)
+    boolean existsByCommentIdAndUserId(Long commentId, Long userId);
 }

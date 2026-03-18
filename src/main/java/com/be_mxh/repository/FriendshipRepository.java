@@ -36,4 +36,14 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
                 )
             """)
     Page<User> findFriends(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+    SELECT COUNT(f) > 0 FROM Friendship f
+    WHERE f.status = 'ACCEPTED'
+    AND (
+        (f.requester.id = :a AND f.addressee.id = :b)
+        OR  (f.requester.id = :b AND f.addressee.id = :a)
+    )
+    """)
+    boolean existsAcceptedFriendship(@Param("a") Long a, @Param("b") Long b);
 }

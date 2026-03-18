@@ -2,6 +2,7 @@ package com.be_mxh.service;
 
 import com.be_mxh.dto.user.*;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,4 +19,6 @@ public interface UserService extends UserDetailsService {
     UserResponse blockUser(Long id);
 
     UserProfileResponse getUserProfile(Long profileUserId);
+
+  String updateAvatar(MultipartFile avatar);
 }
