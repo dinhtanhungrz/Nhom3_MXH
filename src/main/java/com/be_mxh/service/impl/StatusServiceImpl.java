@@ -2,20 +2,20 @@ package com.be_mxh.service.impl;
 
 import com.be_mxh.config.security.SecurityUtils;
 import com.be_mxh.dto.image.ImageUploadResult;
-import com.be_mxh.dto.status.CreateStatusRequest;
-import com.be_mxh.dto.status.StatusImageResponse;
-import com.be_mxh.dto.status.StatusResponse;
-import com.be_mxh.dto.status.StatusResponseDisplay;
+import com.be_mxh.dto.status.*;
 import com.be_mxh.entity.Status;
 import com.be_mxh.entity.StatusImage;
 import com.be_mxh.entity.User;
+import com.be_mxh.exception.BadRequestException;
+import com.be_mxh.exception.ResourceNotFoundException;
 import com.be_mxh.repository.*;
 import com.be_mxh.service.ImageUploadService;
 import com.be_mxh.service.StatusService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;import org.springframework.security.access.AccessDeniedException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -147,6 +147,140 @@ public class StatusServiceImpl implements StatusService {
     // 3. Cập nhật quyền mới và lưu lại
     status.setVisibility(newVisibility);
     statusRepository.save(status);
+  }
+
+  @Transactional
+  @Override
+  public void updateStatus(Long statusId, UpdateStatusRequest request,
+                           List<MultipartFile> newImages, Long currentUserId) {
+
+    // 1. Tìm status — throw ResourceNotFoundException nếu không tồn tại (handler 404 đã có)
+    Status status = statusRepository.findById(statusId)
+      .orElseThrow(() -> new ResourceNotFoundException("Status không tồn tại"));
+
+    // 2. Kiểm tra quyền — throw AccessDeniedException (handler 403 đã có)
+    if (!status.getUser().getId().equals(currentUserId)) {
+      throw new AccessDeniedException("Bạn không có quyền chỉnh sửa status này");
+    }
+
+    // 3. Validate content nếu có truyền vào
+    if (request.getContent() != null && request.getContent().trim().isEmpty()) {
+      throw new BadRequestException("Nội dung bài viết không được để trống");
+    }
+
+    if (request.getContent() != null && request.getContent().length() > 3000) {
+      throw new BadRequestException("Nội dung bài viết không được vượt quá 3000 ký tự");
+    }
+
+    // 4. Validate visibility nếu có truyền vào
+    if (request.getVisibility() != null) {
+      try {
+        status.setVisibility(
+          Status.Visibility.valueOf(request.getVisibility().toUpperCase())
+        );
+      } catch (IllegalArgumentException e) {
+        throw new BadRequestException(
+          "Visibility không hợp lệ. Vui lòng dùng: PUBLIC, FRIENDS_ONLY hoặc ONLY_ME"
+        );
+      }
+    }
+
+    // 5. Validate deleteImageIds nếu có truyền vào
+    if (request.getDeleteImageIds() != null && !request.getDeleteImageIds().isEmpty()) {
+      List<StatusImage> toDelete = statusImageRepository
+        .findAllById(request.getDeleteImageIds());
+
+      // Kiểm tra id ảnh có thuộc status này không
+      List<Long> invalidIds = request.getDeleteImageIds().stream()
+        .filter(id -> toDelete.stream()
+          .noneMatch(img -> img.getId().equals(id)
+            && img.getStatus().getId().equals(statusId)))
+        .toList();
+
+      if (!invalidIds.isEmpty()) {
+        throw new BadRequestException(
+          "Ảnh không tồn tại hoặc không thuộc bài viết này: " + invalidIds
+        );
+      }
+
+      // Kiểm tra không được xóa hết ảnh nếu content cũng trống
+      boolean contentWillBeEmpty = request.getContent() != null
+        ? request.getContent().trim().isEmpty()
+        : status.getContent() == null || status.getContent().trim().isEmpty();
+
+      long remainingImages = statusImageRepository
+        .findByStatusIdOrderBySortOrderAsc(statusId).size() - toDelete.size();
+
+      boolean newImagesEmpty = newImages == null || newImages.isEmpty();
+
+      if (contentWillBeEmpty && remainingImages == 0 && newImagesEmpty) {
+        throw new BadRequestException("Bài viết phải có nội dung hoặc ít nhất một ảnh");
+      }
+    }
+
+    // 6. Validate file ảnh mới nếu có
+    if (newImages != null && !newImages.isEmpty()) {
+      List<String> allowedTypes = List.of("image/jpeg", "image/png", "image/webp", "image/gif");
+      long maxSize = 10 * 1024 * 1024; // 10MB
+
+      for (MultipartFile file : newImages) {
+        if (file.isEmpty()) continue;
+
+        if (!allowedTypes.contains(file.getContentType())) {
+          throw new BadRequestException(
+            "File '" + file.getOriginalFilename() + "' không đúng định dạng. Chỉ chấp nhận: jpg, png, webp, gif"
+          );
+        }
+
+        if (file.getSize() > maxSize) {
+          throw new BadRequestException(
+            "File '" + file.getOriginalFilename() + "' vượt quá dung lượng tối đa 10MB"
+          );
+        }
+      }
+    }
+
+    // ── Sau khi validate xong mới thực hiện thay đổi ──
+
+    if (request.getContent() != null) {
+      status.setContent(request.getContent().trim());
+    }
+
+    statusRepository.save(status);
+
+    // Xóa ảnh cũ
+    if (request.getDeleteImageIds() != null && !request.getDeleteImageIds().isEmpty()) {
+      List<StatusImage> toDelete = statusImageRepository.findAllById(request.getDeleteImageIds());
+      for (StatusImage img : toDelete) {
+        imageUploadService.deleteByPublicId(img.getPublicId());
+        statusImageRepository.delete(img);
+      }
+    }
+
+    // Upload ảnh mới
+    if (newImages != null && !newImages.isEmpty()) {
+      int nextSortOrder = statusImageRepository
+        .findByStatusIdOrderBySortOrderAsc(statusId)
+        .stream()
+        .mapToInt(StatusImage::getSortOrder)
+        .max()
+        .orElse(-1) + 1;
+
+      String folder = "statuses/" + statusId;
+
+      for (MultipartFile file : newImages) {
+        if (file.isEmpty()) continue;
+
+        ImageUploadResult uploadResult = imageUploadService.upload(file, folder);
+
+        statusImageRepository.save(StatusImage.builder()
+          .status(status)
+          .url(uploadResult.getUrl())
+          .publicId(uploadResult.getPublicId())
+          .sortOrder(nextSortOrder++)
+          .build());
+      }
+    }
   }
 
   // mapper

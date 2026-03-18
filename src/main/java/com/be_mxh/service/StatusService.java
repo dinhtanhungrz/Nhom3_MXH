@@ -3,6 +3,7 @@ package com.be_mxh.service;
 import com.be_mxh.dto.status.CreateStatusRequest;
 import com.be_mxh.dto.status.StatusResponse;
 import com.be_mxh.dto.status.StatusResponseDisplay;
+import com.be_mxh.dto.status.UpdateStatusRequest;
 import com.be_mxh.entity.Status;
 import com.be_mxh.entity.UserPrincipal;
 import jakarta.transaction.Transactional;
@@ -113,4 +114,6 @@ public interface StatusService {
    * @param userId        ID người đang đăng nhập (phải là chủ bài)
    */
   void updateVisibility(Long statusId, Status.Visibility newVisibility, Long userId);
+
+  void updateStatus(Long statusId, UpdateStatusRequest request, List<MultipartFile> newImages, Long currentUserId);
 }
