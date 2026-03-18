@@ -7,9 +7,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface ImageUploadService {
-    ImageUploadResult upload(MultipartFile file, String folderFile);
+  ImageUploadResult upload(MultipartFile file, String folderFile);
 
-    void delete(String publicId);
+  void delete(String imageUrl);
 
-    List<StatusImage> getImagesByStatusId(Long statusId);
+  void deleteByPublicId(String publicId);
 }

@@ -3,6 +3,7 @@ package com.be_mxh.controller;
 import com.be_mxh.dto.ApiResponse;
 import com.be_mxh.dto.status.StatusResponse;
 import com.be_mxh.dto.status.StatusResponseDisplay;
+import com.be_mxh.dto.status.UpdateStatusRequest;
 import com.be_mxh.entity.Status;
 import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.service.StatusService;
@@ -121,7 +122,13 @@ public class StatusController {
     @PathVariable Long id,
     @AuthenticationPrincipal UserPrincipal userPrincipal) {
     statusService.deleteStatus(id, userPrincipal.getId());
-    return ResponseEntity.ok("Xoá status thành công");
+
+    return ResponseEntity.ok(
+      ApiResponse.<Void>builder()
+        .code(200)
+        .message("Delete status successfully")
+        .build()
+    );
   }
 
   /**
@@ -220,44 +227,28 @@ public class StatusController {
     );
   }
 
-  /**
-   * [Chức năng] Thay đổi quyền hiển thị của một bài viết (chỉ chủ bài viết được thay đổi)
-   * <p>
-   * API: PATCH /api/statuses/{id}/visibility?visibility={giá_trị}
-   * Yêu cầu đăng nhập: Có
-   *
-   * @param id            ID của status cần thay đổi
-   * @param visibilityStr Quyền hiển thị mới: PUBLIC | FRIENDS_ONLY | ONLY_ME (không phân biệt hoa thường)
-   * @return Thông báo thành công, lỗi 400 nếu visibility không hợp lệ, lỗi 403 nếu không phải chủ bài
-   * <p>
-   * Ví dụ: PATCH /api/statuses/3/visibility?visibility=ONLY_ME
-   */
-  @PatchMapping("/{id}/visibility")
-  public ResponseEntity<?> updateVisibility(
+  @PreAuthorize("hasRole('USER')")
+  @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<?> updateStatus(
     @PathVariable Long id,
-    @RequestParam("visibility") String visibilityStr,
+    @RequestParam(value = "content", required = false) String content,
+    @RequestParam(value = "visibility", required = false) String visibility,
+    @RequestParam(value = "deleteImageIds", required = false) List<Long> deleteImageIds,
+    @RequestParam(value = "newImages", required = false) List<MultipartFile> newImages,
     @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
-    // Chuyển string từ request ("only_me" hoặc "PUBLIC") sang Enum hợp lệ
-    Status.Visibility newVis;
-    try {
-      newVis = Status.Visibility.valueOf(visibilityStr.toUpperCase());
-    } catch (IllegalArgumentException ex) {
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-        ApiResponse.<String>builder()
-          .code(HttpStatus.BAD_REQUEST.value())
-          .message("Visibility không hợp lệ. Vui lòng dùng: PUBLIC, FRIENDS_ONLY hoặc ONLY_ME")
-          .build()
-      );
-    }
+    UpdateStatusRequest request = UpdateStatusRequest.builder()
+      .content(content)
+      .visibility(visibility)
+      .deleteImageIds(deleteImageIds)
+      .build();
 
-    // Gọi Service thực thi logic cập nhật DB
-    statusService.updateVisibility(id, newVis, userPrincipal.getId());
+    statusService.updateStatus(id, request, newImages, userPrincipal.getId());
 
-    return ResponseEntity.status(HttpStatus.OK).body(
-      ApiResponse.<String>builder()
+    return ResponseEntity.ok(
+      ApiResponse.<Void>builder()
         .code(HttpStatus.OK.value())
-        .message("Cập nhật quyền hiển thị thành công")
+        .message("Update status successfully")
         .build()
     );
   }
