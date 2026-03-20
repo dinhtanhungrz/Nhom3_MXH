@@ -26,18 +26,47 @@ public class JWTService {
 
     private SecretKey secretKey;
 
+
     @PostConstruct
     public void init() {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateTokenLogin(Authentication auth) {
+    /**public String generateTokenLogin(Authentication auth) {
         UserPrincipal user = (UserPrincipal) auth.getPrincipal();
         return Jwts.builder()
                 .setSubject(user.getUsername())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(secretKey, SignatureAlgorithm.HS512)
+                .compact();
+    }**/
+    public String generateTokenLogin(Authentication auth) {
+        UserPrincipal user = (UserPrincipal) auth.getPrincipal();
+        return buildToken(
+                user.getId(),
+                user.getUsername(),
+                user.getAuthorities().iterator().next().getAuthority()
+        );
+    }
+    // ✅ LOGIN Google
+    public String generateTokenLogin(User user) {
+        String role = user.getRoles().stream()
+                .findFirst()
+                .map(r -> r.getName())
+                .orElse("ROLE_USER");
+
+        return buildToken(user.getId(), user.getUsername(), role);
+    }
+    // ✔️ common builder
+    private String buildToken(Long userId, String username, String role) {
+        return Jwts.builder()
+                .setSubject(userId.toString())
+                .claim("username", username)
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -50,6 +79,7 @@ public class JWTService {
                 .compact();
     }
 
+    // VALIDATE TOKEN
     public boolean validateJwtToken(String token) {
         try {
             Jwts.parserBuilder()
@@ -58,9 +88,19 @@ public class JWTService {
                     .parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            e.printStackTrace();
+            log.error("JWT INVALID: {}", e.getMessage());
             return false;
         }
+    }
+    public Long getUserIdFromJwt(String token) {
+        return Long.parseLong(
+                Jwts.parserBuilder()
+                        .setSigningKey(secretKey)
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody()
+                        .getSubject()
+        );
     }
 
     public String getUserNameFromJwtToken(String token) {
@@ -69,6 +109,6 @@ public class JWTService {
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
-                .getSubject();
+                .get("username", String.class);
     }
 }

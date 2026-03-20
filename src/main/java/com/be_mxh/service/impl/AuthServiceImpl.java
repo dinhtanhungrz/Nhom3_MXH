@@ -9,14 +9,17 @@ import com.be_mxh.exception.BadRequestException;
 import com.be_mxh.repository.RefreshTokenRepository;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.AuthService;
+import com.be_mxh.service.GoogleTokenVerifier;
 import com.be_mxh.service.RefreshTokenService;
 import com.be_mxh.service.RoleService;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,6 +51,8 @@ public class AuthServiceImpl implements AuthService {
     private RefreshTokenService refreshTokenService;
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+    @Autowired
+    private GoogleTokenVerifier googleTokenVerifier;
 
     @Override
     public boolean isDuplicateUsername(String username) {
@@ -157,6 +162,87 @@ public class AuthServiceImpl implements AuthService {
 
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         return userPrincipal.getId();
+    }
+    @Override
+    public GoogleLoginResponse loginWithGoogle(String idTokenStr) {
+        try {
+            GoogleIdToken googleIdToken = googleTokenVerifier.verify(idTokenStr);
+
+            if (googleIdToken == null) {
+                throw new BadRequestException("Xác thực Google thất bại");
+            }
+
+            GoogleIdToken.Payload payload = googleIdToken.getPayload();
+            String email = payload.getEmail();
+
+            log.info("Google login xử lý cho email: {}", email);
+
+            // 2. Upsert User
+            User user = userRepository.findByEmail(email)
+                    .orElseGet(() -> createGoogleUser(email,
+                            (String) payload.get("name"),
+                            (String) payload.get("picture")));
+
+            // 3. Xử lý Roles (Sửa lỗi Stream address)
+            Set<String> roles = user.getRoles().stream()
+                    .map(Role::getName)
+                    .collect(Collectors.toSet());
+
+            // 4. Sinh cặp Token
+            // Chú ý: Dùng hàm generateToken(user) từ file JWTService.java bạn đã gửi
+            String accessToken = jwtService.generateToken(user);
+
+            // Sinh Refresh Token từ RefreshTokenService của bạn
+            RefreshToken refreshTokenObj = refreshTokenService.create(user);
+
+            // 5. Fix lỗi Builder: Đảm bảo field name trong DTO khớp với builder
+            return GoogleLoginResponse.builder()
+                    .accessToken(accessToken) // Khớp với field accessToken trong DTO
+                    .refreshToken(refreshTokenObj.getToken())
+                    .role(roles)             // Truyền trực tiếp Set<String>
+                    .email(user.getEmail())
+                    .username(user.getUsername())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("🔥 GOOGLE LOGIN ERROR: ", e);
+            throw new BadRequestException("Lỗi hệ thống khi đăng nhập Google");
+        }
+    }
+    private User createGoogleUser(String email, String name, String picture) {
+        log.info("Creating Google user for email: {}", email);
+
+        String username = generateUniqueUsername(email);
+
+        Role role = roleService.findByName("ROLE_USER");
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+
+        User user = User.builder()
+                .email(email)
+                .username(username)
+                .password("") // Google login không cần password
+                .fullName(name)
+                .avatarUrl(picture != null ? picture : AVATAR_DEFAULT_URL)
+                .enabled(true)
+                .status(User.UserStatus.PUBLIC)
+                .displayFriendsStatus(User.DisplayFriendsStatus.PUBLIC)
+                .roles(roles)
+                .build();
+
+        return userRepository.save(user);
+    }
+    private String generateUniqueUsername(String email) {
+        String base = email.split("@")[0];
+        String username = base;
+        int i = 1;
+
+        while (userRepository.existsByUsername(username)) {
+            username = base + i;
+            i++;
+        }
+
+        return username;
     }
 
 }

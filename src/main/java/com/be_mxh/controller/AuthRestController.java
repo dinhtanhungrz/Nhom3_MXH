@@ -1,15 +1,20 @@
+
 package com.be_mxh.controller;
 
 import com.be_mxh.dto.ApiResponse;
 import com.be_mxh.dto.auth.*;
 import com.be_mxh.service.AuthService;
 import com.be_mxh.validation.PasswordValidator;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -97,5 +102,33 @@ public class AuthRestController {
         );
     }
 
+    /**
+     * Khởi tạo Google OAuth2 login flow
+     *
+     * API: GET /api/auth/google
+     *
+     * Endpoint này sẽ redirect người dùng đến Google OAuth2 authorization server
+     * để thực hiện đăng nhập bằng tài khoản Google.
+     *
+     * Sau khi user xác thực thành công với Google, họ sẽ được redirect về
+     * OAuth2AuthenticationSuccessHandler để xử lý JWT token generation.
+     */
+    @PostMapping("/google")
+    public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> request) {
+        String idToken = request.get("idToken");
 
+        if (idToken == null || idToken.isBlank()) {
+            return ResponseEntity.badRequest().body("Thiếu Google ID Token");
+        }
+
+        GoogleLoginResponse response = authService.loginWithGoogle(idToken);
+
+        return ResponseEntity.ok(
+                ApiResponse.<GoogleLoginResponse>builder()
+                        .code(200)
+                        .message("Đăng nhập thành công")
+                        .data(response)
+                        .build()
+        );
+    }
 }
