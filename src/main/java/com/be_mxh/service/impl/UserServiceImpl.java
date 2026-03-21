@@ -52,6 +52,9 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public UserDetails loadUserByUsername(String username) {
+    if (username == null || username.isBlank()) {
+      throw new UsernameNotFoundException("Username is null or empty");
+    }
     User user = userRepository.findByUsername(username)
       .orElseThrow(() ->
         new UsernameNotFoundException("User not found: " + username));
@@ -67,33 +70,35 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
+  @Transactional // Nên có transactional để đảm bảo tính toàn vẹn khi upload/save
   public ProfileResponse updateProfile(ProfileRequest req) {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    // 1. Lấy user hiện tại một cách an toàn thông qua SecurityUtils
+    // Hàm này của bạn thường đã ném UnauthorizedException nếu chưa login
+    User user = securityUtils.getCurrentUser();
 
-    if (authentication == null || !authentication.isAuthenticated()) {
-      throw new UnauthorizedException("Unauthenticated");
-    }
-
-    UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
-    assert userDetails != null;
-    String username = userDetails.getUsername();
-
-    // 2️⃣ Load user từ DB
-    User user = userRepository.findByUsername(username)
-      .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-
+    // 2. Xử lý Avatar (Gộp chung logic vào một chỗ)
     if (req.getAvatar() != null && !req.getAvatar().isEmpty()) {
-      if (!user.getAvatarUrl().equals(AVATAR_DEFAULT_URL)) {
+
+      // Kiểm tra và xóa ảnh cũ nếu không phải ảnh mặc định
+      // Đảo ngược equals để tránh NullPointerException nếu AVATAR_DEFAULT_URL null
+      if (user.getAvatarUrl() != null && !AVATAR_DEFAULT_URL.equals(user.getAvatarUrl())) {
         imageUploadService.delete(user.getAvatarUrl());
       }
+      // Upload ảnh mới
       ImageUploadResult imageUploadResult = imageUploadService.upload(req.getAvatar(), "avatars");
       user.setAvatarUrl(imageUploadResult.getUrl());
     }
+    // 3. Cập nhật các thông tin khác
     user.setFullName(req.getFullName());
     user.setAddress(req.getAddress());
-    user.setPhone(req.getPhone() != null && req.getPhone().isBlank() ? null : req.getPhone());
+
+    // Xử lý số điện thoại: nếu rỗng thì set null
+    String phone = (req.getPhone() != null && req.getPhone().isBlank()) ? null : req.getPhone();
+    user.setPhone(phone);
+
     user.setHobby(req.getHobby());
+
+    // 4. Lưu và trả về kết quả
     userRepository.save(user);
     return mapToUserInfoDto(user);
   }

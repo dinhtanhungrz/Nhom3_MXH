@@ -37,13 +37,15 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             // CHỈ validate nếu chuỗi trông có vẻ là JWT (có 2 dấu chấm)
             if (jwt != null && countPeriods(jwt) == 2 && jwtService.validateJwtToken(jwt)) {
                 String username = jwtService.getUserNameFromJwtToken(jwt);
-                UserDetails userDetails = userService.loadUserByUsername(username);
+                if (username != null) {
+                    UserDetails userDetails = userService.loadUserByUsername(username);
 
-                if (userDetails != null) {
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    if (userDetails != null) {
+                        UsernamePasswordAuthenticationToken authentication =
+                                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    }
                 }
             }
         } catch (Exception e) {

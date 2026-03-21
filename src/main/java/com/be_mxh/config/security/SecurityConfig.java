@@ -38,34 +38,20 @@ import java.util.List;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-  private final UserRepository userRepository;
-  private final RoleRepository roleRepository;
-  private final JWTService jwtService;
   private final UserService userService;
   private final PasswordEncoder passwordEncoder;
   private final JWTAuthenticationFilter jwtAuthenticationFilter;
 
+  // Chỉ cần Inject những cái thực sự dùng trong Config này
   @Autowired
   public SecurityConfig(
-          UserRepository userRepository,
-          RoleRepository roleRepository,
-          JWTService jwtService,
           @Lazy UserService userService,
           PasswordEncoder passwordEncoder,
           JWTAuthenticationFilter jwtAuthenticationFilter
-
   ) {
-    this.userRepository = userRepository;
-    this.roleRepository = roleRepository;
-    this.jwtService = jwtService;
     this.userService = userService;
     this.passwordEncoder = passwordEncoder;
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-  }
-
-  @Bean
-  public JWTAuthenticationFilter jwtAuthenticationFilter() {
-    return new JWTAuthenticationFilter(userService, jwtService);
   }
 
   @Bean(BeanIds.AUTHENTICATION_MANAGER)
@@ -75,21 +61,15 @@ public class SecurityConfig {
 
   @Bean
   public AuthenticationProvider authenticationProvider() {
+    // 1. Truyền userService (UserDetailsService) vào ngay khi khởi tạo
     DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userService);
+    // 2. setPasswordEncoder thì vẫn có hàm setter bình thường
     provider.setPasswordEncoder(passwordEncoder);
+
     return provider;
   }
 
-  @Bean
-  public RestAuthenticationEntryPoint restServicesEntryPoint() {
-    return new RestAuthenticationEntryPoint();
-  }
-
-  @Bean
-  public CustomAccessDeniedHandler customAccessDeniedHandler() {
-    return new CustomAccessDeniedHandler();
-  }
-
+  // CORS Configuration giữ nguyên của bạn
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
@@ -97,7 +77,6 @@ public class SecurityConfig {
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     config.setAllowedHeaders(List.of("*"));
     config.setAllowCredentials(true);
-
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
@@ -107,16 +86,16 @@ public class SecurityConfig {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
-            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+            // Cấu hình STATELESS cho JWT
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers("/favicon.ico", "/static/**", "/css/**", "/js/**").permitAll()
-                    // ✅ AUTH APIs
+                    // ✅ AUTH APIs - Cho phép login/register/google
                     .requestMatchers("/api/auth/**").permitAll()
-
-
                     .anyRequest().authenticated()
             )
+            // CHỈ dùng 1 dòng này để đăng ký Filter
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
