@@ -92,16 +92,6 @@ public class JWTService {
             return false;
         }
     }
-    public Long getUserIdFromJwt(String token) {
-        return Long.parseLong(
-                Jwts.parserBuilder()
-                        .setSigningKey(secretKey)
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody()
-                        .getSubject()
-        );
-    }
 
     public String getUserNameFromJwtToken(String token) {
         return Jwts.parserBuilder()

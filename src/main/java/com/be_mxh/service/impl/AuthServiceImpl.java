@@ -190,7 +190,7 @@ public class AuthServiceImpl implements AuthService {
 
             // 4. Sinh cặp Token
             // Chú ý: Dùng hàm generateToken(user) từ file JWTService.java bạn đã gửi
-            String accessToken = jwtService.generateToken(user);
+            String accessToken = jwtService.generateTokenLogin(user);
 
             // Sinh Refresh Token từ RefreshTokenService của bạn
             RefreshToken refreshTokenObj = refreshTokenService.create(user);

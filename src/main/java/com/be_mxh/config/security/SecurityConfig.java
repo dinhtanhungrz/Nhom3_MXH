@@ -91,8 +91,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers("/favicon.ico", "/static/**", "/css/**", "/js/**").permitAll()
-                    // ✅ AUTH APIs - Cho phép login/register/google
                     .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/app-visits/record").permitAll()
                     .anyRequest().authenticated()
             )
             // CHỈ dùng 1 dòng này để đăng ký Filter
