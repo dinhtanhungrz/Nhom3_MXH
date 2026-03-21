@@ -3,10 +3,15 @@ package com.be_mxh.config.security;
 import com.be_mxh.config.security.jwt.CustomAccessDeniedHandler;
 import com.be_mxh.config.security.jwt.JWTAuthenticationFilter;
 import com.be_mxh.config.security.jwt.RestAuthenticationEntryPoint;
+import com.be_mxh.repository.RoleRepository;
+import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.UserService;
-import com.be_mxh.service.impl.UserServiceImpl;
+import com.be_mxh.service.impl.JWTService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -19,7 +24,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -34,43 +38,38 @@ import java.util.List;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-  @Bean
-  public UserService userService() {
-    return new UserServiceImpl();
-  }
+  private final UserService userService;
+  private final PasswordEncoder passwordEncoder;
+  private final JWTAuthenticationFilter jwtAuthenticationFilter;
 
-  @Bean
-  public JWTAuthenticationFilter jwtAuthenticationFilter() {
-    return new JWTAuthenticationFilter();
+  // Chỉ cần Inject những cái thực sự dùng trong Config này
+  @Autowired
+  public SecurityConfig(
+          @Lazy UserService userService,
+          PasswordEncoder passwordEncoder,
+          JWTAuthenticationFilter jwtAuthenticationFilter
+  ) {
+    this.userService = userService;
+    this.passwordEncoder = passwordEncoder;
+    this.jwtAuthenticationFilter = jwtAuthenticationFilter;
   }
 
   @Bean(BeanIds.AUTHENTICATION_MANAGER)
-  public AuthenticationManager authenticationManager(AuthenticationConfiguration config) {
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
     return config.getAuthenticationManager();
   }
 
   @Bean
   public AuthenticationProvider authenticationProvider() {
-    DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(userService());
-    authenticationProvider.setPasswordEncoder(passwordEncoder());
-    return authenticationProvider;
+    // 1. Truyền userService (UserDetailsService) vào ngay khi khởi tạo
+    DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userService);
+    // 2. setPasswordEncoder thì vẫn có hàm setter bình thường
+    provider.setPasswordEncoder(passwordEncoder);
+
+    return provider;
   }
 
-  @Bean
-  public RestAuthenticationEntryPoint restServicesEntryPoint() {
-    return new RestAuthenticationEntryPoint();
-  }
-
-  @Bean
-  public CustomAccessDeniedHandler customAccessDeniedHandler() {
-    return new CustomAccessDeniedHandler();
-  }
-
-  @Bean
-  public PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder(10);
-  }
-
+  // CORS Configuration giữ nguyên của bạn
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
@@ -78,29 +77,27 @@ public class SecurityConfig {
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     config.setAllowedHeaders(List.of("*"));
     config.setAllowCredentials(true);
-
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return source;
   }
 
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) {
-    return http.csrf(AbstractHttpConfigurer::disable)
-      .cors(Customizer.withDefaults())
-      .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-      .authorizeHttpRequests(auth -> auth
-        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-        .requestMatchers("/api/auth/**").permitAll()
-        .requestMatchers(HttpMethod.POST, "/api/app-visits/record").permitAll()
-        .anyRequest().authenticated()
-      )
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http.csrf(AbstractHttpConfigurer::disable)
+            .cors(Customizer.withDefaults())
+            // Cấu hình STATELESS cho JWT
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers("/favicon.ico", "/static/**", "/css/**", "/js/**").permitAll()
+                    .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/app-visits/record").permitAll()
+                    .anyRequest().authenticated()
+            )
+            // CHỈ dùng 1 dòng này để đăng ký Filter
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-      .exceptionHandling(customizer -> customizer
-        .accessDeniedHandler(customAccessDeniedHandler())
-        .authenticationEntryPoint(restServicesEntryPoint())
-      )
-      .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-      .build();
+    return http.build();
   }
 }

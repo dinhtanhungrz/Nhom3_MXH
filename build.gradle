@@ -25,13 +25,15 @@ repositories {
 }
 
 dependencies {
+    implementation 'com.google.api-client:google-api-client:2.0.0'
+    implementation 'com.google.http-client:google-http-client-jackson2:1.43.3'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-    implementation group: 'org.springframework.security', name: 'spring-security-jwt', version: '1.0.10.RELEASE'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation group: 'io.jsonwebtoken', name: 'jjwt-api', version: '0.11.5'
     implementation 'com.cloudinary:cloudinary-http5:2.0.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
     runtimeOnly group: 'io.jsonwebtoken', name: 'jjwt-impl', version: '0.11.5'
     runtimeOnly group: 'io.jsonwebtoken', name: 'jjwt-jackson', version: '0.11.5'
     compileOnly 'org.projectlombok:lombok'

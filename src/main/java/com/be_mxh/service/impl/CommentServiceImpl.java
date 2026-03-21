@@ -2,7 +2,6 @@ package com.be_mxh.service.impl;
 
 import com.be_mxh.dto.comment.CommentRequest;
 import com.be_mxh.dto.comment.CommentResponse;
-import com.be_mxh.dto.comment.CommentResponseDisplay;
 import com.be_mxh.entity.Comment;
 import com.be_mxh.entity.Friendship;
 import com.be_mxh.entity.Status;
@@ -104,7 +103,6 @@ public class CommentServiceImpl implements CommentService {
 
   /**
    * Xóa mềm comment (soft-delete: đặt deleted = true, KHÔNG xóa khỏi DB).
-   *
    * Quy trình:
    *  1. Tìm comment theo ID và deleted = false → 404 nếu không tìm thấy
    *  2. So sánh userId của comment với currentUserId → 403 nếu không khớp
