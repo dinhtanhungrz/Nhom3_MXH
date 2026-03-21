@@ -2,6 +2,7 @@ package com.be_mxh.service.impl;
 
 import com.be_mxh.config.security.SecurityUtils;
 import com.be_mxh.dto.user.FriendshipsResponse;
+import com.be_mxh.dto.user.UserResponse;
 import com.be_mxh.entity.Friendship;
 import com.be_mxh.entity.Notification;
 import com.be_mxh.entity.User;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -59,18 +61,16 @@ public class FriendshipServiceImpl implements FriendshipService {
         Long currentUserId = securityUtils.getCurrentUserId();
 
         if (currentUserId.equals(userAddressesId)) {
-            throw new BadRequestException("Unable to send a friend request to myself");
+            throw new BadRequestException("Cannot add yourself");
         }
 
-        User requester = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        User addressee = userRepository.findById(userAddressesId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        Optional<Friendship> existing =
+                friendshipRepository.findRelationship(currentUserId, userAddressesId);
 
-        Optional<Friendship> existing = friendshipRepository.findRelationship(currentUserId, userAddressesId);
         if (existing.isPresent()) {
             Friendship f = existing.get();
 
+            // 👉 auto accept nếu người kia đã gửi trước
             if (f.getStatus() == Friendship.Status.PENDING &&
                     f.getRequester().getId().equals(userAddressesId)) {
 
@@ -79,22 +79,21 @@ public class FriendshipServiceImpl implements FriendshipService {
                 return;
             }
 
-            throw new BadRequestException("Friend request already exists or users are already friends");
+            throw new BadRequestException("Already requested or already friends");
         }
+
+        User requester = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        User addressee = userRepository.findById(userAddressesId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Friendship friendship = new Friendship();
         friendship.setRequester(requester);
         friendship.setAddressee(addressee);
         friendship.setStatus(Friendship.Status.PENDING);
-        friendshipRepository.save(friendship);
 
-        Notification notification = new Notification();
-        notification.setActor(requester);
-        notification.setReceiver(addressee);
-        notification.setType(Notification.NotificationType.FRIEND_REQUEST);
-        notification.setEntityType(Notification.EntityType.USER);
-        notification.setEntityId(requester.getId());
-        notificationRepository.save(notification);
+        friendshipRepository.save(friendship);
     }
 
     @Override
@@ -136,9 +135,43 @@ public class FriendshipServiceImpl implements FriendshipService {
         throw new BadRequestException("The two users are not friends");
     }
 
+
     public Page<FriendshipsResponse> getFriends(Long userId, Pageable pageable) {
         return friendshipRepository.findFriends(userId, pageable)
                 .map(this::mapToDto);
+    }
+
+    @Override
+    public List<FriendshipsResponse> getPendingRequests(Long userId) {
+        return friendshipRepository.findPendingRequests(userId)
+                .stream()
+                .map(f -> mapToDto(f.getRequester()))
+                .toList();
+    }
+
+
+    @Override
+    @Transactional
+    public void acceptRequest(Long requesterId) {
+        Long currentUserId = securityUtils.getCurrentUserId();
+
+        Friendship friendship = friendshipRepository
+                .findPendingRequest(requesterId, currentUserId)
+                .orElseThrow(() -> new BadRequestException("Request not found"));
+
+        friendship.setStatus(Friendship.Status.ACCEPTED);
+        friendshipRepository.save(friendship);
+    }
+    @Override
+    @Transactional
+    public void rejectRequest(Long requesterId) {
+        Long currentUserId = securityUtils.getCurrentUserId();
+
+        Friendship friendship = friendshipRepository
+                .findPendingRequest(requesterId, currentUserId)
+                .orElseThrow(() -> new BadRequestException("Request not found"));
+
+        friendshipRepository.delete(friendship);
     }
 
     private FriendshipsResponse mapToDto(User user){
