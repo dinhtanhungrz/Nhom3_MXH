@@ -23,4 +23,6 @@ public interface FriendshipService {
     void acceptRequest(Long requesterId);
 
     void rejectRequest(Long requesterId);
+
+    List<FriendshipsResponse> getSuggestions(Long userId);
 }

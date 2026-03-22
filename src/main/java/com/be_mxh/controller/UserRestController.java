@@ -247,4 +247,18 @@ public class UserRestController {
         .build()
     );
   }
+  @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+  @GetMapping("/suggestions")
+  public ResponseEntity<?> getSuggestions() {
+    Long userId = userService.getProfile().getId(); // Lấy ID user hiện tại
+    List<FriendshipsResponse> suggestions = friendshipService.getSuggestions(userId);
+
+    return ResponseEntity.ok(
+            ApiResponse.builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Get suggestions successfully")
+                    .data(suggestions)
+                    .build()
+    );
+  }
 }

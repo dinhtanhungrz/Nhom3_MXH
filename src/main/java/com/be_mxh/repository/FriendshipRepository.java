@@ -83,4 +83,13 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
         )
     """)
     boolean existsPendingBetween(@Param("a") Long a, @Param("b") Long b);
+    @Query("""
+        SELECT CASE 
+            WHEN f.requester.id = :userId THEN f.addressee.id 
+            ELSE f.requester.id 
+        END 
+        FROM Friendship f 
+        WHERE f.requester.id = :userId OR f.addressee.id = :userId
+    """)
+    List<Long> findAllRelatedUserIds(@Param("userId") Long userId);
 }

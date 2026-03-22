@@ -15,6 +15,7 @@ import com.be_mxh.service.FriendshipService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -133,6 +134,18 @@ public class FriendshipServiceImpl implements FriendshipService {
         }
 
         throw new BadRequestException("The two users are not friends");
+    }
+    @Override
+    public List<FriendshipsResponse> getSuggestions(Long userId) {
+        // Tìm các user ID đã có quan hệ (PENDING hoặc ACCEPTED)
+        List<Long> excludedIds = friendshipRepository.findAllRelatedUserIds(userId);
+        excludedIds.add(userId); // Loại chính mình
+
+        // Lấy danh sách user không nằm trong list trên (Giới hạn 5 người)
+        return userRepository.findSuggestions(excludedIds, PageRequest.of(0, 5))
+                .stream()
+                .map(this::mapToDto) // Sử dụng hàm mapToDto đã có trong code của bạn
+                .toList();
     }
 
 
