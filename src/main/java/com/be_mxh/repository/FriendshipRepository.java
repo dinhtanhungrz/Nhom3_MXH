@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -46,4 +47,40 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
     )
     """)
     boolean existsAcceptedFriendship(@Param("a") Long a, @Param("b") Long b);
+    // 1. Lấy lời mời kết bạn (PENDING)
+    @Query("""
+        SELECT f
+        FROM Friendship f
+        WHERE f.addressee.id = :userId
+          AND f.status = 'PENDING'
+    """)
+    List<Friendship> findPendingRequests(@Param("userId") Long userId);
+
+    // 2. Tìm request pending cụ thể
+    @Query("""
+        SELECT f
+        FROM Friendship f
+        WHERE f.requester.id = :requesterId
+          AND f.addressee.id = :addresseeId
+          AND f.status = 'PENDING'
+    """)
+    Optional<Friendship> findPendingRequest(
+            @Param("requesterId") Long requesterId,
+            @Param("addresseeId") Long addresseeId
+    );
+
+    // 3. Check tồn tại quan hệ bằng user_low/user_high (QUAN TRỌNG)
+    Optional<Friendship> findByUserLowAndUserHigh(Long userLow, Long userHigh);
+
+    // 4. Check đã gửi request chưa (PENDING)
+    @Query("""
+        SELECT COUNT(f) > 0
+        FROM Friendship f
+        WHERE f.status = 'PENDING'
+        AND (
+            (f.requester.id = :a AND f.addressee.id = :b)
+         OR (f.requester.id = :b AND f.addressee.id = :a)
+        )
+    """)
+    boolean existsPendingBetween(@Param("a") Long a, @Param("b") Long b);
 }
