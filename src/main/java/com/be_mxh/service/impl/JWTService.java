@@ -70,15 +70,6 @@ public class JWTService {
                 .compact();
     }
 
-    public String generateToken(User user) {
-        return Jwts.builder()
-                .setSubject(user.getUsername())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(secretKey, SignatureAlgorithm.HS512)
-                .compact();
-    }
-
     // VALIDATE TOKEN
     public boolean validateJwtToken(String token) {
         try {

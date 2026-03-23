@@ -98,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = token.getUser();
 
-        String newAccessToken = jwtService.generateToken(user);
+        String newAccessToken = jwtService.generateTokenLogin(user);
 
         return new RefreshTokenResponse(
                 newAccessToken,

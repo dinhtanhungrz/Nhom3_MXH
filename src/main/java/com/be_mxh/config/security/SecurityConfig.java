@@ -8,6 +8,7 @@ import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.UserService;
 import com.be_mxh.service.impl.JWTService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -41,6 +43,7 @@ public class SecurityConfig {
   private final UserService userService;
   private final PasswordEncoder passwordEncoder;
   private final JWTAuthenticationFilter jwtAuthenticationFilter;
+  private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
   // Chỉ cần Inject những cái thực sự dùng trong Config này
   @Autowired
@@ -52,6 +55,7 @@ public class SecurityConfig {
     this.userService = userService;
     this.passwordEncoder = passwordEncoder;
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    this.restAuthenticationEntryPoint = new RestAuthenticationEntryPoint();
   }
 
   @Bean(BeanIds.AUTHENTICATION_MANAGER)
@@ -86,6 +90,7 @@ public class SecurityConfig {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
+            .exceptionHandling(exception -> exception.authenticationEntryPoint(restAuthenticationEntryPoint))
             // Cấu hình STATELESS cho JWT
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
