@@ -42,6 +42,7 @@ public class ImageUploadServiceImpl implements ImageUploadService {
   @Override
   public void delete(String imageUrl) {
     String publicId = extractPublicId(imageUrl);
+    if(publicId == null) return;
     try {
       cloudinary.uploader().destroy(
         publicId,

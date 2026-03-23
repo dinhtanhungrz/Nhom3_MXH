@@ -129,6 +129,7 @@ public class StatusServiceImpl implements StatusService {
 
     // 4. Xóa ảnh trong DB rồi xóa status
     statusImageRepository.deleteAll(images);
+    statusImageRepository.flush();
     statusRepository.delete(status);
   }
 
