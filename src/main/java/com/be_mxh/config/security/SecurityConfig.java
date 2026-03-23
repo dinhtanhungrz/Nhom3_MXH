@@ -92,6 +92,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers("/favicon.ico", "/static/**", "/css/**", "/js/**").permitAll()
                     .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/ws/**").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/app-visits/record").permitAll()
                     .anyRequest().authenticated()
             )
