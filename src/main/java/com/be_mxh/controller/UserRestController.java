@@ -2,6 +2,7 @@ package com.be_mxh.controller;
 
 import com.be_mxh.dto.ApiResponse;
 import com.be_mxh.dto.user.*;
+import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.service.FriendshipService;
 import com.be_mxh.service.MutualFriendsService;
 import com.be_mxh.service.UserService;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -158,7 +160,7 @@ public class UserRestController {
   }
 
   @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-  @PostMapping("/friend-request/accept/{id}") // POST
+  @PostMapping("/friend-request/{id}/accept") // POST
   public ResponseEntity<?> acceptFriendRequest(@PathVariable("id") Long id) {
     friendshipService.friendRequest(id); // friendshipService.friendRequest already handles acceptance if request exists
     return ResponseEntity.status(HttpStatus.OK).body(
@@ -219,6 +221,19 @@ public class UserRestController {
         .build()
     );
   }
+  @GetMapping("/friend-requests")
+  public ResponseEntity<?> getFriendRequests() {
+    Long userId = userService.getProfile().getId();
+
+    return ResponseEntity.ok(
+            ApiResponse.builder()
+                    .code(200)
+                    .message("Get friend requests")
+                    .data(friendshipService.getPendingRequests(userId))
+                    .build()
+    );
+  }
+
 
   @PreAuthorize("hasAnyRole('ADMIN', 'USER')") // cái này để xác thực. ko them thi ko co token van vao duoc
   @PatchMapping(value = "/update-avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -230,6 +245,20 @@ public class UserRestController {
         .message("Updated avatar")
         .data(newAvatar)
         .build()
+    );
+  }
+  @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+  @GetMapping("/suggestions")
+  public ResponseEntity<?> getSuggestions() {
+    Long userId = userService.getProfile().getId(); // Lấy ID user hiện tại
+    List<FriendshipsResponse> suggestions = friendshipService.getSuggestions(userId);
+
+    return ResponseEntity.ok(
+            ApiResponse.builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Get suggestions successfully")
+                    .data(suggestions)
+                    .build()
     );
   }
 }
