@@ -11,6 +11,7 @@ import com.be_mxh.exception.ResourceNotFoundException;
 import com.be_mxh.exception.UnauthorizedException;
 import com.be_mxh.repository.*;
 import com.be_mxh.service.CommentService;
+import com.be_mxh.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -31,6 +32,7 @@ public class CommentServiceImpl implements CommentService {
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
     private final CommentLikeRepository commentLikeRepository;
+    private final NotificationService notificationService;
 
 
 
@@ -59,7 +61,14 @@ public class CommentServiceImpl implements CommentService {
       comment.setParent(parent);
     }
 
-    commentRepository.save(comment);
+    comment = commentRepository.save(comment);
+    
+    // Notification logic
+    if (comment.getParent() != null) {
+      notificationService.createNotification(comment.getParent().getUser().getId(), userId, "REPLY_COMMENT", "COMMENT", comment.getId());
+    } else {
+      notificationService.createNotification(status.getUser().getId(), userId, "COMMENT_STATUS", "COMMENT", comment.getId());
+    }
   }
 
   private boolean canUserComment(User user, Status status) {
@@ -161,6 +170,7 @@ public class CommentServiceImpl implements CommentService {
         commentLike.setComment(comment);
         commentLike.setUser(user);
         commentLikeRepository.save(commentLike);
+        notificationService.createNotification(comment.getUser().getId(), userId, "LIKE_COMMENT", "COMMENT", commentId);
         return true; // Trả về true nghĩa là hiện tại "Đã like"
       }
     }
@@ -168,6 +178,9 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public void unlikeComment(Long commentId, Long userId) {
         commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+        commentRepository.findById(commentId).ifPresent(comment -> {
+            notificationService.revokeNotification(comment.getUser().getId(), userId, "LIKE_COMMENT", "COMMENT", commentId);
+        });
     }
 
     @Override

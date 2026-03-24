@@ -82,9 +82,10 @@ public class Notification {
     public enum NotificationType {
         FRIEND_REQUEST,
         FRIEND_ACCEPTED,
-        POST_LIKE,
-        POST_COMMENT,
-        COMMENT_REPLY,
+        LIKE_STATUS,
+        LIKE_COMMENT,
+        COMMENT_STATUS,
+        REPLY_COMMENT,
         MENTION,
         SYSTEM
     }

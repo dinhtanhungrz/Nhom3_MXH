@@ -2,9 +2,9 @@ package com.be_mxh.controller;
 
 import com.be_mxh.dto.ApiResponse;
 import com.be_mxh.dto.user.*;
-import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.service.FriendshipService;
 import com.be_mxh.service.MutualFriendsService;
+import com.be_mxh.service.NotificationService;
 import com.be_mxh.service.UserService;
 import com.be_mxh.validation.PasswordValidator;
 import jakarta.validation.Valid;
@@ -16,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,6 +30,8 @@ public class UserRestController {
   private FriendshipService friendshipService;
   @Autowired
   private MutualFriendsService mutualFriendsService;
+  @Autowired
+  private NotificationService notificationService;
 
   @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
   @GetMapping("/me")
@@ -258,6 +259,62 @@ public class UserRestController {
                     .code(HttpStatus.OK.value())
                     .message("Get suggestions successfully")
                     .data(suggestions)
+                    .build()
+    );
+  }
+
+  @PreAuthorize("hasAnyRole('ADMIN','USER')")
+  @GetMapping("/notifications")
+  public ResponseEntity<?> getMyNotifications(Pageable pageable) {
+    List<NotificationResponse> list = notificationService.getMyNotifications(pageable);
+
+    return ResponseEntity.ok(
+            ApiResponse.<List<NotificationResponse>>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Get notifications successfully")
+                    .data(list)
+                    .build()
+    );
+  }
+
+  @PreAuthorize("hasAnyRole('ADMIN','USER')")
+  @GetMapping("/notifications/unread-count")
+  public ResponseEntity<?> countUnreadNotifications() {
+    long count = notificationService.countUnread();
+
+    return ResponseEntity.ok(
+            ApiResponse.<Long>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Count unread notifications successfully")
+                    .data(count)
+                    .build()
+    );
+  }
+
+  @PreAuthorize("hasAnyRole('ADMIN','USER')")
+  @PatchMapping("/notifications/{id}/read")
+  public ResponseEntity<?> markNotificationAsRead(@PathVariable Long id) {
+    notificationService.markAsRead(id);
+
+    return ResponseEntity.ok(
+            ApiResponse.<Void>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Notification marked as read")
+                    .data(null)
+                    .build()
+    );
+  }
+
+  @PreAuthorize("hasAnyRole('ADMIN','USER')")
+  @PatchMapping("/notifications/read-all")
+  public ResponseEntity<?> markAllNotificationsAsRead() {
+    notificationService.markAllAsRead();
+
+    return ResponseEntity.ok(
+            ApiResponse.<Void>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("All notifications marked as read")
+                    .data(null)
                     .build()
     );
   }
