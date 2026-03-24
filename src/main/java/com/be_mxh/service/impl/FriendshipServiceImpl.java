@@ -38,6 +38,8 @@ public class FriendshipServiceImpl implements FriendshipService {
     private UserRepository userRepository;
     @Autowired
     private NotificationRepository notificationRepository;
+    @Autowired
+    private com.be_mxh.service.NotificationService notificationService;
 
     @Override
     public String getRelationship(Long currentUserId, Long targetUserId) {
@@ -77,6 +79,15 @@ public class FriendshipServiceImpl implements FriendshipService {
 
                 f.setStatus(Friendship.Status.ACCEPTED);
                 friendshipRepository.save(f);
+
+                // AUTO-ACCEPT NOTIFICATION
+                notificationService.createNotification(
+                        userAddressesId,
+                        currentUserId,
+                        Notification.NotificationType.FRIEND_ACCEPTED.toString(),
+                        Notification.EntityType.USER.toString(),
+                        currentUserId
+                );
                 return;
             }
 
@@ -95,6 +106,15 @@ public class FriendshipServiceImpl implements FriendshipService {
         friendship.setStatus(Friendship.Status.PENDING);
 
         friendshipRepository.save(friendship);
+
+        // CREATE NOTIFICATION
+        notificationService.createNotification(
+                userAddressesId,
+                currentUserId,
+                Notification.NotificationType.FRIEND_REQUEST.toString(),
+                Notification.EntityType.USER.toString(),
+                currentUserId
+        );
     }
 
     @Override
@@ -174,6 +194,15 @@ public class FriendshipServiceImpl implements FriendshipService {
 
         friendship.setStatus(Friendship.Status.ACCEPTED);
         friendshipRepository.save(friendship);
+
+        // CREATE NOTIFICATION
+        notificationService.createNotification(
+                requesterId,
+                currentUserId,
+                Notification.NotificationType.FRIEND_ACCEPTED.toString(),
+                Notification.EntityType.USER.toString(),
+                currentUserId
+        );
     }
     @Override
     @Transactional
