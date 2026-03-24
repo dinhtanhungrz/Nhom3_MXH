@@ -11,15 +11,17 @@ import java.time.LocalDateTime;
 @Setter
 @Builder
 public class CommentResponse {
-    private Long id;
-    private String content;
-    private String username;
-    private String userAvatar;
-    private String imageUrl;
-    private LocalDateTime createdAt;
-    @JsonProperty("isOwner")
-    private boolean isOwner; // Để frontend ẩn/hiện nút sửa
-    private long likeCount;
-    @JsonProperty("isLiked")
-    private boolean isLiked;
+  private Long id;
+  private String content;
+  private Long authorId;
+  private String username;
+  private String fullName;
+  private String userAvatar;
+  private String imageUrl;
+  private LocalDateTime createdAt;
+  @JsonProperty("isOwner")
+  private boolean isOwner; // Để frontend ẩn/hiện nút sửa
+  private long likeCount;
+  @JsonProperty("isLiked")
+  private boolean isLiked;
 }
