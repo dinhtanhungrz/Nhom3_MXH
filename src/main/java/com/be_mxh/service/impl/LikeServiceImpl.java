@@ -8,6 +8,7 @@ import com.be_mxh.repository.LikeRepository;
 import com.be_mxh.repository.StatusRepository;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.LikeService;
+import com.be_mxh.service.NotificationService;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -23,6 +24,7 @@ public class LikeServiceImpl implements LikeService {
     private final LikeRepository likeRepo;
     private final StatusRepository statusRepo;
     private final UserRepository userRepo;
+    private final NotificationService notificationService;
 
     @Override
     public LikeStatus likeStatus(Long statusId, Long userId) {
@@ -49,6 +51,8 @@ public class LikeServiceImpl implements LikeService {
             like.setUser(user);
 
             likeRepo.save(like);
+            
+            notificationService.createNotification(status.getUser().getId(), userId, "LIKE_STATUS", "POST", statusId);
         }
 
         long likeCount = likeRepo.countByStatusId(statusId);
@@ -64,6 +68,9 @@ public class LikeServiceImpl implements LikeService {
 
         if (liked) {
             likeRepo.deleteByStatusIdAndUserId(statusId, userId);
+            statusRepo.findById(statusId).ifPresent(status -> {
+                notificationService.revokeNotification(status.getUser().getId(), userId, "LIKE_STATUS", "POST", statusId);
+            });
         }
 
         long likeCount = likeRepo.countByStatusId(statusId);

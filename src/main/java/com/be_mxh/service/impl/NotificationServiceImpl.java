@@ -8,9 +8,11 @@ import com.be_mxh.repository.NotificationRepository;
 import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.AuthService;
 import com.be_mxh.service.NotificationService;
+import com.be_mxh.repository.CommentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -26,6 +28,11 @@ public class NotificationServiceImpl implements NotificationService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private CommentRepository commentRepository;
+
+    @Autowired
+    private com.be_mxh.repository.StatusRepository statusRepository;
 
     @Override
     public List<NotificationResponse> getMyNotifications(Pageable pageable) {
@@ -87,7 +94,39 @@ public class NotificationServiceImpl implements NotificationService {
 
         notificationRepository.save(notification);
     }
+
+    @Override
+    @Transactional
+    public void revokeNotification(Long receiverId, Long actorId, String type, String entityType, Long entityId) {
+        if (receiverId.equals(actorId)) return; // tránh tự notify mình
+        
+        notificationRepository.deleteByReceiverIdAndActorIdAndTypeAndEntityTypeAndEntityId(
+                receiverId,
+                actorId,
+                Notification.NotificationType.valueOf(type),
+                Notification.EntityType.valueOf(entityType),
+                entityId
+        );
+    }
     private NotificationResponse mapToDto(Notification n) {
+        Long postId = null;
+        Long commentId = null;
+        Long statusOwnerId = null;
+
+        if (n.getEntityType() == Notification.EntityType.POST) {
+            postId = n.getEntityId();
+            statusOwnerId = statusRepository.findById(postId)
+                    .map(s -> s.getUser() != null ? s.getUser().getId() : null)
+                    .orElse(null);
+        } else if (n.getEntityType() == Notification.EntityType.COMMENT) {
+            commentId = n.getEntityId();
+            com.be_mxh.entity.Comment comment = commentRepository.findById(commentId).orElse(null);
+            if (comment != null && comment.getStatus() != null) {
+                postId = comment.getStatus().getId();
+                statusOwnerId = comment.getStatus().getUser() != null ? comment.getStatus().getUser().getId() : null;
+            }
+        }
+
         return NotificationResponse.builder()
                 .id(n.getId())
                 .actorId(n.getActor() != null ? n.getActor().getId() : null)
@@ -96,6 +135,10 @@ public class NotificationServiceImpl implements NotificationService {
                 .type(n.getType())
                 .entityType(n.getEntityType())
                 .entityId(n.getEntityId())
+                .postId(postId)
+                .commentId(commentId)
+                .statusOwnerId(statusOwnerId)
+                .receiverId(n.getReceiver() != null ? n.getReceiver().getId() : null)
                 .isRead(n.isRead())
                 .createdAt(n.getCreatedAt())
                 .build();

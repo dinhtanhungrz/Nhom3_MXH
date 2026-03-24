@@ -17,6 +17,11 @@ public class NotificationResponse {
     private Notification.NotificationType type;
     private Notification.EntityType entityType;
     private Long entityId;
+    
+    private Long postId;
+    private Long commentId;
+    private Long statusOwnerId;
+    private Long receiverId;
 
     private boolean isRead;
     private LocalDateTime createdAt;

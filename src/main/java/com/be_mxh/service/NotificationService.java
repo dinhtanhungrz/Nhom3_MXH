@@ -21,4 +21,12 @@ public interface NotificationService {
             String entityType,
             Long entityId
     );
+
+    void revokeNotification(
+            Long receiverId,
+            Long actorId,
+            String type,
+            String entityType,
+            Long entityId
+    );
 }

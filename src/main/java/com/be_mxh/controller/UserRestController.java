@@ -2,7 +2,6 @@ package com.be_mxh.controller;
 
 import com.be_mxh.dto.ApiResponse;
 import com.be_mxh.dto.user.*;
-import com.be_mxh.entity.UserPrincipal;
 import com.be_mxh.service.FriendshipService;
 import com.be_mxh.service.MutualFriendsService;
 import com.be_mxh.service.NotificationService;
@@ -17,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
