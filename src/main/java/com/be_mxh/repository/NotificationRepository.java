@@ -15,4 +15,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     long countByReceiverIdAndReadAtIsNull(Long receiverId);
 
     void deleteByReceiverIdAndActorIdAndTypeAndEntityTypeAndEntityId(Long receiverId, Long actorId, Notification.NotificationType type, Notification.EntityType entityType, Long entityId);
+
+    List<Notification> findAllByEntityIdAndEntityTypeAndTypeIn(
+      Long entityId,
+      Notification.EntityType entityType,
+      List<Notification.NotificationType> types
+    );
 }

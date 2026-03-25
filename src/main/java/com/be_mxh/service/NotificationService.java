@@ -29,4 +29,6 @@ public interface NotificationService {
             String entityType,
             Long entityId
     );
+
+    void revokeNotificationsByComment(Long commentId, Long deletedByUserId);
 }

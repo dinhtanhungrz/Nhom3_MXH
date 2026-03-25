@@ -62,7 +62,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     comment = commentRepository.save(comment);
-    
+
     // Notification logic
     if (comment.getParent() != null) {
       notificationService.createNotification(comment.getParent().getUser().getId(), userId, "REPLY_COMMENT", "COMMENT", comment.getId());
@@ -145,6 +145,8 @@ public class CommentServiceImpl implements CommentService {
     commentRepository.save(comment);
     log.info("[CommentService] ✅ Comment {} đã xóa mềm thành công (userId={})",
       commentId, currentUserId);
+
+    notificationService.revokeNotificationsByComment(commentId, currentUserId);
   }
 
 
@@ -201,8 +203,10 @@ public class CommentServiceImpl implements CommentService {
 
     return CommentResponse.builder()
             .id(comment.getId())
+            .authorId(comment.getUser().getId())
             .content(comment.getContent())
             .username(comment.getUser().getUsername())
+            .fullName(comment.getUser().getFullName())
             .userAvatar(comment.getUser().getAvatarUrl())
             .createdAt(comment.getCreatedAt())
             .isOwner(currentUserId != null && comment.getUser().getId().equals(currentUserId))

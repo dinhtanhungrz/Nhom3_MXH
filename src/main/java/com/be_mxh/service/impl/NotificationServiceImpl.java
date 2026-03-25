@@ -9,6 +9,7 @@ import com.be_mxh.repository.UserRepository;
 import com.be_mxh.service.AuthService;
 import com.be_mxh.service.NotificationService;
 import com.be_mxh.repository.CommentRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
+@Slf4j
 public class NotificationServiceImpl implements NotificationService {
 
     @Autowired
@@ -99,7 +101,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public void revokeNotification(Long receiverId, Long actorId, String type, String entityType, Long entityId) {
         if (receiverId.equals(actorId)) return; // tránh tự notify mình
-        
+
         notificationRepository.deleteByReceiverIdAndActorIdAndTypeAndEntityTypeAndEntityId(
                 receiverId,
                 actorId,
@@ -108,7 +110,34 @@ public class NotificationServiceImpl implements NotificationService {
                 entityId
         );
     }
-    private NotificationResponse mapToDto(Notification n) {
+
+  @Override
+  @Transactional
+  public void revokeNotificationsByComment(Long commentId, Long deletedByUserId) {
+    List<Notification.NotificationType> relatedTypes = List.of(
+      Notification.NotificationType.LIKE_COMMENT,
+      Notification.NotificationType.REPLY_COMMENT,
+      Notification.NotificationType.COMMENT_STATUS
+    );
+
+    List<Notification> toRevoke = notificationRepository
+      .findAllByEntityIdAndEntityTypeAndTypeIn(
+        commentId,
+        Notification.EntityType.COMMENT,  // ✅ khớp đúng entityType = COMMENT
+        relatedTypes
+      );
+
+    if (toRevoke.isEmpty()) {
+      log.info("[NotificationService] Không có notification nào cần thu hồi – commentId={}", commentId);
+      return;
+    }
+
+    notificationRepository.deleteAll(toRevoke);
+    log.info("[NotificationService] ✅ Thu hồi {} notification – commentId={}, deletedBy userId={}",
+      toRevoke.size(), commentId, deletedByUserId);
+  }
+
+  private NotificationResponse mapToDto(Notification n) {
         Long postId = null;
         Long commentId = null;
         Long statusOwnerId = null;
