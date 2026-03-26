@@ -116,4 +116,5 @@ public interface StatusService {
   void updateVisibility(Long statusId, Status.Visibility newVisibility, Long userId);
 
   void updateStatus(Long statusId, UpdateStatusRequest request, List<MultipartFile> newImages, Long currentUserId);
+  List <StatusResponseDisplay>  getGuestFeed();
 }

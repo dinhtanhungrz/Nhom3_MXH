@@ -252,4 +252,16 @@ public class StatusController {
         .build()
     );
   }
+  @GetMapping("/guest")
+  public ResponseEntity<?> getGuestFeed() {
+    List<StatusResponseDisplay> statuses = statusService.getGuestFeed();
+
+    return ResponseEntity.ok(
+            ApiResponse.<List<StatusResponseDisplay>>builder()
+                    .code(200)
+                    .message("Get guest feed successfully")
+                    .data(statuses)
+                    .build()
+    );
+  }
 }

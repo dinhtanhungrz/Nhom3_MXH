@@ -144,4 +144,11 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
         ORDER BY s.createdAt DESC LIMIT 10
     """)
   List<Status> getNewsfeedStatuses(@Param("viewerId") Long viewerId);
+  @Query("""
+  SELECT s FROM Status s
+  WHERE s.visibility = 'PUBLIC'
+  AND s.active = true
+  ORDER BY s.createdAt DESC
+    """)
+  List<Status> findGuestFeed();
 }

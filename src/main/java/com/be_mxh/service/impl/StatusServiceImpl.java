@@ -310,7 +310,7 @@ public class StatusServiceImpl implements StatusService {
       List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
       long totalLikes = likeRepository.countByStatusId(status.getId());
       long totalComments = commentRepository.countByStatusIdAndDeletedFalse(status.getId());
-      boolean isLike = likeRepository.existsByStatusIdAndUserId(status.getId(), viewerId);
+      boolean isLike = viewerId != null && likeRepository.existsByStatusIdAndUserId(status.getId(), viewerId);
       statusResponseDisplays.add(mapStatusResponseDisplay(status, images, totalComments, totalLikes, viewerId, isLike));
     }
     return statusResponseDisplays;
@@ -324,8 +324,8 @@ public class StatusServiceImpl implements StatusService {
     Long viewerId,
     boolean isLike
   ) {
-    boolean canComment = viewerId.equals(status.getUser().getId()) ||
-      friendshipRepository.existsAcceptedFriendship(status.getUser().getId(), viewerId);
+    boolean canComment = viewerId != null &&(viewerId.equals(status.getUser().getId()) ||
+      friendshipRepository.existsAcceptedFriendship(status.getUser().getId(), viewerId));
 
     return StatusResponseDisplay.builder()
       .id(status.getId())
@@ -366,5 +366,39 @@ public class StatusServiceImpl implements StatusService {
       .isLike(isLike)
       .imageUrls(images.stream().map(this::mapToImageUrl).toList())
       .build();
+  }
+  @Override
+  public List<StatusResponseDisplay> getGuestFeed(){
+    List<Status> results = statusRepository.findGuestFeed();
+    return mapStatusResponseDisplays(results, null);
+  }
+  private List<StatusResponseDisplay> mapStatusResponseDisplaysGuest(List<Status> statuses) {
+    List<StatusResponseDisplay> result = new ArrayList<>();
+
+    for (Status status : statuses) {
+      List<StatusImage> images = statusImageRepository.findByStatusIdOrderBySortOrderAsc(status.getId());
+
+      long totalLikes = likeRepository.countByStatusId(status.getId());
+      long totalComments = commentRepository.countByStatusIdAndDeletedFalse(status.getId());
+
+      result.add(StatusResponseDisplay.builder()
+              .id(status.getId())
+              .content(status.getContent())
+              .visibility(status.getVisibility().name())
+              .createdAt(status.getCreatedAt())
+              .likesCount(totalLikes)
+              .commentsCount(totalComments)
+              .isLike(false)
+              .canComment(false)
+
+              .authorId(status.getUser().getId())
+              .authorName(status.getUser().getFullName())
+              .authorAvatarUrl(status.getUser().getAvatarUrl())
+
+              .imageUrls(images.stream().map(this::mapToImageUrl).toList())
+              .build());
+    }
+
+    return result;
   }
 }
